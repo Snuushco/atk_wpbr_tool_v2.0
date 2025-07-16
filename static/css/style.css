@@ -1,0 +1,371 @@
+/* Reset en basis stijlen */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.6;
+    color: #333;
+    background-color: #f5f5f5;
+}
+
+/* Header en navigatie */
+header {
+    background-color: #1976d2;
+    color: white;
+    padding: 1rem 0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+nav {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo {
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+.nav-links a {
+    color: white;
+    text-decoration: none;
+    margin-left: 1.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    transition: background-color 0.3s;
+}
+
+.nav-links a:hover {
+    background-color: rgba(255,255,255,0.1);
+}
+
+/* Main content */
+main {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+}
+
+/* Forms */
+.auth-container {
+    max-width: 400px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.form-container {
+    max-width: 800px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.form-section {
+    margin-bottom: 2.5rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid #eee;
+}
+
+.form-section:last-child {
+    border-bottom: none;
+}
+
+.form-section h2 {
+    color: #1976d2;
+    margin-bottom: 1.5rem;
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.auth-form, #aanvraagForm {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.form-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    margin-bottom: 1.2em;
+}
+
+.form-group input[type="checkbox"] {
+    accent-color: #1976d2;
+    width: 1.2em;
+    height: 1.2em;
+    margin-right: 0.7em;
+    vertical-align: middle;
+    position: relative;
+    top: -1px;
+}
+
+.form-group label {
+    display: inline-block;
+    vertical-align: middle;
+    margin-bottom: 0.2em;
+    font-weight: 500;
+    color: #555;
+    cursor: pointer;
+}
+
+.form-group input[type="checkbox"] + label {
+    margin: 0;
+    font-weight: 500;
+    color: #333;
+    cursor: pointer;
+}
+
+/* Selectbox styling */
+select {
+    padding: 0.75rem;
+    border: 1.5px solid #1976d2;
+    border-radius: 6px;
+    font-size: 1rem;
+    background: #f7fafd;
+    color: #222;
+    width: 100%;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    transition: border-color 0.3s;
+}
+
+select:focus {
+    outline: none;
+    border-color: #125199;
+    box-shadow: 0 0 0 2px rgba(25,118,210,0.2);
+}
+
+/* Inputvelden */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="date"],
+input[type="tel"] {
+    padding: 0.75rem;
+    border: 1.5px solid #1976d2;
+    border-radius: 6px;
+    font-size: 1rem;
+    background: #f7fafd;
+    color: #222;
+    width: 100%;
+    transition: border-color 0.3s;
+}
+
+input:focus {
+    outline: none;
+    border-color: #125199;
+    box-shadow: 0 0 0 2px rgba(25,118,210,0.2);
+}
+
+/* File upload */
+.file-preview {
+    margin-top: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.file-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem;
+    background: #f7fafd;
+    border: 1px solid #1976d2;
+    border-radius: 4px;
+}
+
+.file-name {
+    font-weight: 500;
+}
+
+.file-size {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+/* Form actions */
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    margin-top: 2rem;
+}
+
+/* Buttons */
+.btn {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.btn-primary {
+    background-color: #1976d2;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #125199;
+}
+
+.btn-secondary {
+    background-color: #f5f5f5;
+    color: #333;
+    border: 1px solid #ddd;
+}
+
+.btn-secondary:hover {
+    background-color: #e5e5e5;
+}
+
+/* Links */
+.form-links {
+    text-align: center;
+    margin-top: 1rem;
+}
+
+.form-links a {
+    color: #1976d2;
+    text-decoration: none;
+}
+
+.form-links a:hover {
+    text-decoration: underline;
+}
+
+/* Alerts */
+.alert {
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-radius: 4px;
+}
+
+.alert-success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.alert-error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+/* Footer */
+footer {
+    text-align: center;
+    padding: 2rem;
+    background-color: #f8f9fa;
+    border-top: 1px solid #dee2e6;
+    margin-top: 2rem;
+}
+
+/* Bijlage-sectie: labels en uploaders netjes uitlijnen */
+.bijlage-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    margin-bottom: 1.2em;
+}
+.bijlage-group > div:first-child {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    width: 100%;
+    gap: 0.7em;
+}
+.bijlage-group label {
+    white-space: nowrap;
+    font-weight: 500;
+    color: #333;
+    margin-bottom: 0;
+    flex: 1 1 auto;
+}
+.bijlage-group input[type="checkbox"] {
+    margin-right: 0.7em;
+    flex-shrink: 0;
+}
+.bijlage-group input[type="file"] {
+    margin-top: 0.7em;
+    margin-left: 2.1em;
+    width: 100%;
+    max-width: 350px;
+}
+@media (max-width: 768px) {
+    .bijlage-group > div:first-child {
+        flex-direction: row;
+        align-items: flex-start;
+        gap: 0.7em;
+    }
+    .bijlage-group label {
+        font-size: 1rem;
+        white-space: normal;
+    }
+    .bijlage-group input[type="file"] {
+        margin-left: 0;
+        max-width: 100%;
+    }
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    nav {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .nav-links {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        text-align: center;
+    }
+    
+    .nav-links a {
+        margin: 0;
+    }
+    
+    .auth-container, .form-container {
+        margin: 1rem;
+        padding: 1rem;
+    }
+    
+    .form-section {
+        padding-bottom: 1rem;
+        margin-bottom: 1.2rem;
+    }
+    
+    .form-group {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.2em;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+    }
+    
+    .btn {
+        width: 100%;
+    }
+} 

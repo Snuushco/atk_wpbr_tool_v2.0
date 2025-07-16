@@ -1,0 +1,22 @@
+ATK-WPBR TOOL COMPREHENSIVE TEST REPORT
+============================================================
+
+Test Date: 2025-06-26 20:36:52
+Total Tests: 12
+Passed: 1
+Failed: 11
+Success Rate: 8.3%
+
+Detailed Results:
+FAIL: Environment Variables - Missing: SMTP_USERNAME
+PASS: Users Table - users table exists
+FAIL: Email Tracking Table - email_tracking table not found
+FAIL: SMTP Connection - (501, b'5.7.0 Authentication failed (Invalid user name)')
+FAIL: Server Reachability - Connection failed: HTTPConnectionPool(host='localhost', port=5000): Max retries exceeded with url: / (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000002416DA56CF0>: Failed to establish a new connection: [WinError 10061] Kan geen verbinding maken omdat de doelcomputer de verbinding actief heeft geweigerd'))
+FAIL: User Registration - HTTPConnectionPool(host='localhost', port=5000): Max retries exceeded with url: /register (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000002416DBA2210>: Failed to establish a new connection: [WinError 10061] Kan geen verbinding maken omdat de doelcomputer de verbinding actief heeft geweigerd'))
+FAIL: User Login - No test user available
+FAIL: Form Access - HTTPConnectionPool(host='localhost', port=5000): Max retries exceeded with url: /form (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000002416DBA2710>: Failed to establish a new connection: [WinError 10061] Kan geen verbinding maken omdat de doelcomputer de verbinding actief heeft geweigerd'))
+FAIL: File Upload - HTTPConnectionPool(host='localhost', port=5000): Max retries exceeded with url: /uploads (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000002416DB6C770>: Failed to establish a new connection: [WinError 10061] Kan geen verbinding maken omdat de doelcomputer de verbinding actief heeft geweigerd'))
+FAIL: WPBR Data - HTTPConnectionPool(host='localhost', port=5000): Max retries exceeded with url: /wpbr.json (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000002416DB6CC30>: Failed to establish a new connection: [WinError 10061] Kan geen verbinding maken omdat de doelcomputer de verbinding actief heeft geweigerd'))
+FAIL: Email Tracking - HTTPConnectionPool(host='localhost', port=5000): Max retries exceeded with url: /email-tracking/test_email_id_123 (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000002416DAA7410>: Failed to establish a new connection: [WinError 10061] Kan geen verbinding maken omdat de doelcomputer de verbinding actief heeft geweigerd'))
+FAIL: Cleanup - HTTPConnectionPool(host='localhost', port=5000): Max retries exceeded with url: /cleanup (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000002416DBA99D0>: Failed to establish a new connection: [WinError 10061] Kan geen verbinding maken omdat de doelcomputer de verbinding actief heeft geweigerd'))

@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="auth-container">
+    <h1>Registreren</h1>
+    <form id="registerForm" class="auth-form">
+        <input type="hidden" id="loginUrl" value="{{ url_for('login') }}">
+        <div class="form-group">
+            <label for="name">Naam contactpersoon</label>
+            <input type="text" id="name" name="name" required placeholder="Bijv. Jan Jansen">
+        </div>
+        <div class="form-group">
+            <label for="email">E-mailadres</label>
+            <input type="email" id="email" name="email" required>
+        </div>
+        <div class="form-group">
+            <label for="password">Wachtwoord</label>
+            <input type="password" id="password" name="password" required>
+        </div>
+        <div class="form-group">
+            <label for="confirm_password">Bevestig wachtwoord</label>
+            <input type="password" id="confirm_password" name="confirm_password" required>
+        </div>
+        <div class="form-group" style="align-items: flex-start;">
+            <label for="vergunningnummer">Vergunningnummer</label>
+            <input type="text" id="vergunningnummer" name="vergunningnummer" required pattern="^(ND|BD|HBD|HND|PAC|PGW|POB|VTC)[0-9]{5}$" title="Vergunningnummer" placeholder="Bijv. ND6250">
+            <span style="margin-left:0.5em; position:relative; cursor:pointer;">
+                <span style="display:inline-block; width:1.2em; height:1.2em; border-radius:50%; background:#1976d2; color:#fff; text-align:center; font-weight:bold; font-size:1em; line-height:1.2em;">i</span>
+                <span class="info-tooltip" style="display:none; position:absolute; left:1.5em; top:0; background:#fff; color:#333; border:1px solid #1976d2; border-radius:4px; padding:0.7em 1em; font-size:0.95em; z-index:10; min-width:220px; box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+                    Vul het type <b>(ND, BD, HBD, HND, PAC, PGW, POB, VTC)</b> gevolgd door de cijfers in.<br>Bijvoorbeeld: <b>ND6250</b>
+                </span>
+            </span>
+        </div>
+        <div class="form-group terms-group" style="margin-top: 1.5em;">
+            <div class="terms-checkbox">
+                <input type="checkbox" id="terms_agreement" name="terms_agreement" required>
+                <label for="terms_agreement">
+                    Ik ga akkoord met de <a href="{{ url_for('terms') }}" target="_blank">Gebruikersovereenkomst</a>
+                </label>
+            </div>
+            <div class="terms-checkbox">
+                <input type="checkbox" id="privacy_agreement" name="privacy_agreement" required>
+                <label for="privacy_agreement">
+                    Ik ga akkoord met de <a href="{{ url_for('privacy') }}" target="_blank">Privacyverklaring</a>
+                </label>
+            </div>
+        </div>
+        <div id="registerError" class="alert alert-error" style="display:none;"></div>
+        <div id="registerSuccess" class="alert alert-success" style="display:none;"></div>
+        <div class="form-group">
+            <button type="submit" class="btn btn-primary">Registreren</button>
+        </div>
+        <div class="form-links">
+            <p>Al een account? <a href="{{ url_for('login') }}">Log hier in</a></p>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('registerForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const errorDiv = document.getElementById('registerError');
+    const successDiv = document.getElementById('registerSuccess');
+    errorDiv.style.display = 'none';
+    successDiv.style.display = 'none';
+    errorDiv.textContent = '';
+    successDiv.textContent = '';
+    
+    const password = document.getElementById('password').value;
+    const confirmPassword = document.getElementById('confirm_password').value;
+    
+    if (password !== confirmPassword) {
+        errorDiv.textContent = 'Wachtwoorden komen niet overeen';
+        errorDiv.style.display = 'block';
+        return;
+    }
+
+    if (!document.getElementById('terms_agreement').checked || !document.getElementById('privacy_agreement').checked) {
+        errorDiv.textContent = 'U moet akkoord gaan met de Gebruikersovereenkomst en Privacyverklaring';
+        errorDiv.style.display = 'block';
+        return;
+    }
+    
+    const formData = {
+        email: document.getElementById('email').value,
+        password: password,
+        name: document.getElementById('name').value,
+        vergunningnummer: document.getElementById('vergunningnummer').value,
+        terms_accepted: true,
+        privacy_accepted: true
+    };
+    
+    try {
+        const response = await fetch('/register', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            successDiv.textContent = data.message;
+            successDiv.style.display = 'block';
+            // Clear form
+            document.getElementById('registerForm').reset();
+            // Redirect to login after 5 seconds
+            setTimeout(() => {
+                window.location.href = document.getElementById('loginUrl').value;
+            }, 5000);
+        } else {
+            errorDiv.textContent = data.message || 'Registratie mislukt';
+            errorDiv.style.display = 'block';
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        errorDiv.textContent = 'Er is een fout opgetreden bij het registreren';
+        errorDiv.style.display = 'block';
+    }
+});
+
+// Toon tooltip bij hover op infobullet
+const infoIcon = document.querySelector('.form-group .info-tooltip')?.previousElementSibling;
+const tooltip = document.querySelector('.form-group .info-tooltip');
+if (infoIcon && tooltip) {
+    infoIcon.addEventListener('mouseenter', () => { tooltip.style.display = 'block'; });
+    infoIcon.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; });
+    infoIcon.addEventListener('focus', () => { tooltip.style.display = 'block'; });
+    infoIcon.addEventListener('blur', () => { tooltip.style.display = 'none'; });
+}
+</script>
+{% endblock %} 

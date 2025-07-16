@@ -1,0 +1,274 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="profile-container">
+  <h1>Mijn Profiel</h1>
+  <div class="card">
+    <h2>Accountgegevens</h2>
+    <form id="profileEditForm" autocomplete="off">
+      <table class="profile-table">
+        <tr>
+          <td>Naam contactpersoon</td>
+          <td><input type="text" id="edit_name" name="edit_name" value="{{ current_user.name }}" required readonly></td>
+        </tr>
+        <tr>
+          <td>E-mailadres</td>
+          <td><input type="email" id="edit_email" name="edit_email" value="{{ current_user.email }}" required readonly></td>
+        </tr>
+        <tr>
+          <td>Vergunningnummer</td>
+          <td><input type="text" id="profile_vergunningnummer" value="{{ current_user.vergunningnummer }}" readonly style="background:#f3f3f3;"></td>
+        </tr>
+      </table>
+      <button type="button" id="editProfileBtn" class="btn btn-secondary">Bewerk</button>
+      <button type="submit" id="saveProfileBtn" class="btn btn-primary" style="display:none;">Opslaan</button>
+      <div id="profileEditMsg" class="alert" style="display:none;"></div>
+      <div class="alert alert-info" style="margin-top:0.7em;">Wil je je vergunningnummer wijzigen? Neem contact op met de admin.</div>
+    </form>
+  </div>
+  <div class="card">
+    <h2>Bedrijfsgegevens (WPBR-register)</h2>
+    <table class="profile-table">
+      <tr><td>Ondernemingsnaam</td><td id="wpbr_ondernemingsnaam">...</td></tr>
+      <tr><td>Vergunningnummer</td><td id="wpbr_vergunningnummer">...</td></tr>
+      <tr><td>KvK-nummer</td><td id="wpbr_kvk">...</td></tr>
+      <tr><td>Adres (plaats)</td><td id="wpbr_adres">...</td></tr>
+      <tr><td>Einddatum vergunning</td><td id="wpbr_einddatum">...</td></tr>
+    </table>
+    <div id="wpbr_notfound" style="display:none;color:#c00;margin-top:0.5em;">Niet gevonden in WPBR-register.</div>
+  </div>
+  <div class="card">
+    <h2>Wachtwoord wijzigen</h2>
+    <form id="changePasswordForm" autocomplete="off">
+      <div class="form-group">
+        <label for="currentPassword">Huidig wachtwoord</label>
+        <input type="password" id="currentPassword" name="currentPassword" required>
+      </div>
+      <div class="form-group">
+        <label for="newPassword">Nieuw wachtwoord</label>
+        <input type="password" id="newPassword" name="newPassword" required>
+      </div>
+      <div class="form-group">
+        <label for="repeatNewPassword">Herhaal nieuw wachtwoord</label>
+        <input type="password" id="repeatNewPassword" name="repeatNewPassword" required>
+      </div>
+      <div id="pwMessage" class="alert" style="display:none;"></div>
+      <button type="submit" class="btn btn-primary">Wijzig wachtwoord</button>
+    </form>
+  </div>
+</div>
+{% endblock %}
+{% block extra_css %}
+<style>
+.profile-container {
+  max-width: 500px;
+  margin: 2rem auto;
+  padding: 1rem;
+}
+.card {
+  background: #f8fafd;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  padding: 1.5rem 1.2rem 1.2rem 1.2rem;
+  margin-bottom: 2rem;
+}
+.profile-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 0.5rem;
+}
+.profile-table td {
+  padding: 0.4em 0.6em;
+  border-bottom: 1px solid #e0e6ed;
+}
+.profile-table tr:last-child td {
+  border-bottom: none;
+}
+.form-group {
+  margin-bottom: 1.1em;
+  display: flex;
+  flex-direction: column;
+}
+input[type="password"] {
+  padding: 0.5em;
+  border-radius: 6px;
+  border: 1px solid #bfc9d1;
+  font-size: 1em;
+}
+.btn.btn-primary {
+  background: #1976d2;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.7em 1.2em;
+  font-size: 1em;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.btn.btn-primary:hover {
+  background: #1256a3;
+}
+.btn.btn-secondary {
+  background: #6c757d;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.7em 1.2em;
+  font-size: 1em;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.btn.btn-secondary:hover {
+  background: #5a6268;
+}
+.alert {
+  margin-bottom: 1em;
+  padding: 0.7em 1em;
+  border-radius: 6px;
+  font-size: 1em;
+}
+.alert-error {
+  background: #ffeaea;
+  color: #c00;
+}
+.alert-success {
+  background: #eaffea;
+  color: #197d2b;
+}
+@media (max-width: 600px) {
+  .profile-container { padding: 0.5rem; }
+  .card { padding: 1rem; }
+}
+</style>
+{% endblock %}
+{% block extra_js %}
+<script>
+// Vul accountgegevens uit backend (via Jinja2)
+// (Verwijderd: document.getElementById('profile_name').textContent = ...)
+// (Verwijderd: document.getElementById('profile_email').textContent = ...)
+// (Verwijderd: document.getElementById('profile_vergunningnummer').textContent = ...)
+
+// WPBR-register ophalen en tonen
+fetch('/wpbr.json')
+  .then(r => r.json())
+  .then(data => {
+    const vnr = document.getElementById('profile_vergunningnummer').value.trim().toUpperCase();
+    const bedrijf = data.find(item => (item['Vergunning nummer']||'').toUpperCase() === vnr);
+    if (bedrijf) {
+      document.getElementById('wpbr_ondernemingsnaam').textContent = bedrijf['Ondernemingsnaam'] || '-';
+      document.getElementById('wpbr_vergunningnummer').textContent = bedrijf['Vergunning nummer'] || '-';
+      document.getElementById('wpbr_kvk').textContent = bedrijf['KvK-nummer'] || '-';
+      document.getElementById('wpbr_adres').textContent = bedrijf['Adres'] || '-';
+      document.getElementById('wpbr_einddatum').textContent = bedrijf['Einddatum vergunning'] || '-';
+    } else {
+      document.getElementById('wpbr_notfound').style.display = '';
+    }
+  });
+
+// Wachtwoord wijzigen (frontend-only)
+document.getElementById('changePasswordForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const cur = document.getElementById('currentPassword').value.trim();
+  const nieuw = document.getElementById('newPassword').value.trim();
+  const herhaal = document.getElementById('repeatNewPassword').value.trim();
+  const msg = document.getElementById('pwMessage');
+  msg.style.display = 'none';
+  msg.className = 'alert';
+  if (!cur) {
+    msg.textContent = 'Vul je huidige wachtwoord in.';
+    msg.classList.add('alert-error');
+    msg.style.display = 'block';
+    return;
+  }
+  if (!nieuw || !herhaal) {
+    msg.textContent = 'Vul het nieuwe wachtwoord tweemaal in.';
+    msg.classList.add('alert-error');
+    msg.style.display = 'block';
+    return;
+  }
+  if (nieuw !== herhaal) {
+    msg.textContent = 'De nieuwe wachtwoorden komen niet overeen.';
+    msg.classList.add('alert-error');
+    msg.style.display = 'block';
+    return;
+  }
+  try {
+    const resp = await fetch('/profiel/wachtwoord', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ currentPassword: cur, newPassword: nieuw })
+    });
+    const data = await resp.json();
+    if (data.success) {
+      msg.textContent = data.message;
+      msg.classList.add('alert-success');
+      msg.style.display = 'block';
+      this.reset();
+    } else {
+      msg.textContent = data.message;
+      msg.classList.add('alert-error');
+      msg.style.display = 'block';
+    }
+  } catch (err) {
+    msg.textContent = 'Fout bij opslaan.';
+    msg.classList.add('alert-error');
+    msg.style.display = 'block';
+  }
+});
+
+// Bewerk-knop functionaliteit
+const editBtn = document.getElementById('editProfileBtn');
+const saveBtn = document.getElementById('saveProfileBtn');
+const nameInput = document.getElementById('edit_name');
+const emailInput = document.getElementById('edit_email');
+editBtn.addEventListener('click', function() {
+  nameInput.readOnly = false;
+  emailInput.readOnly = false;
+  nameInput.focus();
+  editBtn.style.display = 'none';
+  saveBtn.style.display = '';
+});
+
+// Profiel opslaan: na succes weer readonly
+const profileEditForm = document.getElementById('profileEditForm');
+profileEditForm.addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const name = nameInput.value.trim();
+  const email = emailInput.value.trim();
+  const msg = document.getElementById('profileEditMsg');
+  msg.style.display = 'none';
+  msg.className = 'alert';
+  if (!name || !email) {
+    msg.textContent = 'Naam en e-mailadres mogen niet leeg zijn.';
+    msg.classList.add('alert-error');
+    msg.style.display = 'block';
+    return;
+  }
+  try {
+    const resp = await fetch('/profiel/update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email })
+    });
+    const data = await resp.json();
+    if (data.success) {
+      msg.textContent = data.message;
+      msg.classList.add('alert-success');
+      nameInput.value = name;
+      emailInput.value = email;
+      nameInput.readOnly = true;
+      emailInput.readOnly = true;
+      editBtn.style.display = '';
+      saveBtn.style.display = 'none';
+    } else {
+      msg.textContent = data.message;
+      msg.classList.add('alert-error');
+    }
+    msg.style.display = 'block';
+  } catch (err) {
+    msg.textContent = 'Fout bij opslaan.';
+    msg.classList.add('alert-error');
+    msg.style.display = 'block';
+  }
+});
+</script>
+{% endblock %} 

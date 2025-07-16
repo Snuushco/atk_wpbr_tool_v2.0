@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% macro show_file(val) %}
+    {% if val and val.filename %}
+        {{ val.filename }}
+        {% set ext = val.filename.split('.')[-1]|lower %}
+        {% if ext in ['jpg','jpeg','png'] %}
+            <br><img src="{{ url_for('uploaded_file', filename=val.orig) }}" alt="preview" style="max-width:120px;max-height:120px;margin:0.5em 0;">
+        {% else %}
+            <a href="{{ url_for('uploaded_file', filename=val.orig) }}" target="_blank">Download</a>
+        {% endif %}
+    {% endif %}
+{% endmacro %}
+
+{% block content %}
+<div class="form-container">
+    <h1>Controleer uw aanvraag</h1>
+    <form method="post" action="{{ url_for('controle') }}">
+        <!-- Debug info -->
+        <div style="display:none;">
+            Debug info: {{ bevestiging_info }}<br>
+            uploads: {{ uploads }}<br>
+            previews: {{ previews }}<br>
+            resized_success: {{ resized_success }}
+        </div>
+
+        <section class="form-section">
+            <h2>1. Algemene Aanvraaggegevens</h2>
+            <table style="width:100%;border-collapse:collapse;">
+                <tr><td>Datum aanvraag</td><td>{{ form_data.get('datum_aanvraag', '') }}</td></tr>
+                <tr><td>Type aanvraag</td><td>{{ form_data.get('type_aanvraag', '') }}</td></tr>
+            </table>
+        </section>
+        <section class="form-section">
+            <h2>2. Bedrijfsgegevens</h2>
+            <table style="width:100%;border-collapse:collapse;">
+                <tr><td>Naam beveiligingsbedrijf</td><td>{{ form_data.get('bedrijfsnaam', '') }}</td></tr>
+                <tr><td>Straatnaam (bedrijf)</td><td>{{ form_data.get('straat_bedrijf', '') }}</td></tr>
+                <tr><td>Postcode (bedrijf)</td><td>{{ form_data.get('postcode_bedrijf', '') }}</td></tr>
+                <tr><td>Plaats (bedrijf)</td><td>{{ form_data.get('plaats_bedrijf', '') }}</td></tr>
+                <tr><td>Vergunningnummer (type)</td><td>{{ form_data.get('vergunning_type', '') }}</td></tr>
+                <tr><td>Vergunningnummer (nummer)</td><td>{{ form_data.get('vergunning_nummer', '') }}</td></tr>
+                <tr><td>Emailadres (algemeen)</td><td>{{ form_data.get('email_bedrijf', '') }}</td></tr>
+                <tr><td>Telefoonnummer (bedrijf)</td><td>{{ form_data.get('telefoon_bedrijf', '') }}</td></tr>
+            </table>
+        </section>
+        <section class="form-section">
+            <h2>3. Medewerkergegevens</h2>
+            <table style="width:100%;border-collapse:collapse;">
+                <tr><td>BSN nummer</td><td>{{ form_data.get('bsn', '') }}</td></tr>
+                <tr><td>Voorvoegsel</td><td>{{ form_data.get('voorvoegsel', '') }}</td></tr>
+                <tr><td>Geslachtsnaam (achternaam)</td><td>{{ form_data.get('achternaam', '') }}</td></tr>
+                <tr><td>Voornaam/voornamen</td><td>{{ form_data.get('voornamen', '') }}</td></tr>
+                <tr><td>Geboortedatum</td><td>{{ form_data.get('geboortedatum', '') }}</td></tr>
+                <tr><td>Geboorteplaats</td><td>{{ form_data.get('geboorteplaats', '') }}</td></tr>
+                <tr><td>Geboorteland</td><td>{{ form_data.get('geboorteland', '') }}</td></tr>
+                <tr><td>Straatnaam (medewerker)</td><td>{{ form_data.get('straat_medewerker', '') }}</td></tr>
+                <tr><td>Huisnummer (medewerker)</td><td>{{ form_data.get('huisnummer', '') }}</td></tr>
+                <tr><td>Postcode (medewerker)</td><td>{{ form_data.get('postcode_medewerker', '') }}</td></tr>
+                <tr><td>Woonplaats (medewerker)</td><td>{{ form_data.get('woonplaats_medewerker', '') }}</td></tr>
+                <tr><td>Telefoonnummer (medewerker)</td><td>{{ form_data.get('telefoon_medewerker', '') }}</td></tr>
+                <tr><td>Emailadres (medewerker)</td><td>{{ form_data.get('email_medewerker', '') }}</td></tr>
+            </table>
+        </section>
+        <section class="form-section">
+            <h2>4. Specifieke vragen over medewerker</h2>
+            <table style="width:100%;border-collapse:collapse;">
+                <tr><td>Is medewerker opsporingsambtenaar?</td><td>{% if form_data.get('is_opsporingsambtenaar') %}Ja{% else %}Nee{% endif %}</td></tr>
+                <tr><td>Sinds (datum)</td><td>{{ form_data.get('sinds', '') }}</td></tr>
+                <tr><td>Bij welke organisatie</td><td>{{ form_data.get('organisatie', '') }}</td></tr>
+                <tr><td>Welke functie</td><td>{{ form_data.get('functie', '') }}</td></tr>
+                <tr><td>SVPB nummer</td><td>{{ form_data.get('svpb_nummer', '') }}</td></tr>
+                <tr><td>Is de medewerker in opleiding?</td><td>{% if form_data.get('in_opleiding') %}Ja{% else %}Nee{% endif %}</td></tr>
+                <tr><td>Einddatum SVPB verklaring</td><td>{{ form_data.get('einddatum_svpb', '') }}</td></tr>
+                <tr><td>Functie gediplomeerd</td><td>{{ form_data.get('functie_gediplomeerd', '') }}</td></tr>
+                <tr><td>Inclusief certificaat winkelsurveillant?</td><td>{% if form_data.get('certificaat_winkelsurveillant') %}Ja{% else %}Nee{% endif %}</td></tr>
+                <tr><td>Inclusief certificaat persoonsbeveiliger?</td><td>{% if form_data.get('certificaat_persoonsbeveiliger') %}Ja{% else %}Nee{% endif %}</td></tr>
+                <tr><td>Latere begindatum</td><td>{{ form_data.get('latere_begindatum', '') }}</td></tr>
+            </table>
+        </section>
+        <section class="form-section">
+            <h2>5. Naam & Plaats</h2>
+            <table style="width:100%;border-collapse:collapse;">
+                <tr><td>Naam contactpersoon</td><td>{{ form_data.get('naam_contactpersoon', '') }}</td></tr>
+                <tr><td>Plaats ondertekening</td><td>{{ form_data.get('plaats_ondertekening', '') }}</td></tr>
+            </table>
+        </section>
+        <section class="form-section">
+            <h2>6. Bijlagen</h2>
+            {% if resized_success %}
+            <div class="alert alert-success" style="margin-bottom:1em;">
+                De afbeeldingen (pasfoto, handtekening, logo) zijn automatisch geresized en voldoen aan de eisen van de afdeling Korpscheftaken.<br>
+                <b>Geresizede bestanden:</b>
+                <ul style="margin:0.5em 0 0 1.5em;">
+                {% for f in resized_files_info %}
+                    <li>{{ f.filename }}
+                        {% if f.orig_size and f.resized_size %}
+                            <br><small>Origineel: {{ f.orig_size[0] }}x{{ f.orig_size[1] }}px &rarr; Nieuw: {{ f.resized_size[0] }}x{{ f.resized_size[1] }}px</small>
+                        {% elif f.resized_size %}
+                            <br><small>Nieuw: {{ f.resized_size[0] }}x{{ f.resized_size[1] }}px</small>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+            <div class="bijlagen-lijst">
+              {% for key, label in [
+                ('id_file', 'Kleurenkopie identiteitsbewijs medewerker'),
+                ('pasfoto_file', 'Pasfoto medewerker'),
+                ('handtekening_file', 'Handtekening los'),
+                ('svpb_file', 'SVPB verklaring'),
+                ('horeca_file', 'Diploma Horecaportier'),
+                ('voetbal_file', 'Certificaat Voetbalsteward'),
+                ('logo_file', 'Logo organisatie'),
+                ('straf_belgie_file', 'Verklaring uit strafregister (België)'),
+                ('fuhrung_file', 'Führungszeugnis (Duitsland)'),
+                ('straf_herkomst_file', 'Verklaring uit strafregister land van herkomst'),
+                ('pv_file', 'PV aangifte diefstal of bewijs van vermissing')
+              ] %}
+                <div style="margin-bottom:0.3em;">
+                  <span>{{ label }}</span>
+                  {% set files = uploads[key] if key in uploads and uploads[key] is sequence and uploads[key] is not string else [uploads[key]] if key in uploads and uploads[key] else [] %}
+                  {% if files %}
+                    {% for file in files %}
+                      {% if file is mapping and 'filename' in file %}
+                        <a href="{{ url_for('uploaded_file', filename=file.filename) }}" target="_blank">{{ file.filename }}</a>{% if not loop.last %}, {% endif %}
+                      {% elif file %}
+                        <a href="{{ url_for('uploaded_file', filename=file) }}" target="_blank">{{ file }}</a>{% if not loop.last %}, {% endif %}
+                      {% endif %}
+                    {% endfor %}
+                  {% endif %}
+                </div>
+              {% endfor %}
+            </div>
+        </section>
+        <section class="form-section">
+            <h2>7. Afdeling Korpscheftaken</h2>
+            <table style="width:100%;border-collapse:collapse;">
+                <tr><td>Afdeling Korpscheftaken</td><td>{{ form_data.get('afdeling_select', '') }}</td></tr>
+                <tr><td>E-mailadres afdeling</td><td>{{ form_data.get('email_opties_select', '') }}</td></tr>
+            </table>
+        </section>
+        <div class="form-actions">
+            <a href="{{ url_for('wijzigen') }}" class="btn btn-secondary" onclick="clearClientUploads()">Wijzigen</a>
+            <a href="{{ url_for('download_word') }}" class="btn btn-info" style="margin-left:1em;">Download Word-template</a>
+            <button type="submit" formaction="{{ url_for('verzenden') }}" class="btn btn-primary">Definitief verzenden</button>
+        </div>
+    </form>
+</div>
+
+<script>
+// Clear client-side uploads wanneer gebruiker op wijzigen klikt
+function clearClientUploads() {
+    // Clear client-side file storage als deze bestaat
+    if (typeof clientFileStorage !== 'undefined') {
+        clientFileStorage.clear();
+    }
+    
+    // Clear sessionStorage
+    sessionStorage.removeItem('clientFiles');
+    
+    // Toon melding aan gebruiker
+    console.log('Client-side uploads opgeschoond voor wijzigen');
+}
+</script>
+{% endblock %} 

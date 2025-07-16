@@ -1,0 +1,570 @@
+{% extends "base.html" %}
+
+{% set edit_mode = (edit_mode == True or edit_mode == 'True') %}
+
+{% block content %}
+<!-- DEBUG edit_mode: {{ edit_mode }} (type: {{ edit_mode.__class__.__name__ }}) -->
+<div class="form-container">
+    <h1>Aanvraagformulier Beveiligingspas (ATK)</h1>
+    <form id="aanvraagForm" action="{{ url_for('form') }}" method="POST" enctype="multipart/form-data">
+        <!-- 1. Algemene Aanvraaggegevens -->
+        <section class="form-section">
+            <h2>1. Algemene Aanvraaggegevens</h2>
+            <div class="form-group">
+                <label for="datum_aanvraag">Datum aanvraag</label>
+                <input type="date" id="datum_aanvraag" name="datum_aanvraag" required value="{{ form_data.get('datum_aanvraag', '') or now().strftime('%Y-%m-%d') }}">
+            </div>
+            <div class="form-group">
+                <label for="type_aanvraag">Type aanvraag</label>
+                <select id="type_aanvraag" name="type_aanvraag" required>
+                    <option value="Eerste aanvraag" {% if form_data.get('type_aanvraag') == 'Eerste aanvraag' %}selected{% endif %}>Eerste aanvraag</option>
+                    <option value="Verlenging/herscreening" {% if form_data.get('type_aanvraag') == 'Verlenging/herscreening' %}selected{% endif %}>Verlenging/herscreening</option>
+                    <option value="Vervanging legitimatiebewijs (vermissing/diefstal)" {% if form_data.get('type_aanvraag') == 'Vervanging legitimatiebewijs (vermissing/diefstal)' %}selected{% endif %}>Vervanging legitimatiebewijs (vermissing/diefstal)</option>
+                </select>
+            </div>
+        </section>
+
+        <!-- 2. Bedrijfsgegevens -->
+        <section class="form-section">
+            <h2>2. Bedrijfsgegevens</h2>
+            <div class="form-group">
+                <label for="bedrijfsnaam">Naam beveiligingsbedrijf</label>
+                <input type="text" id="bedrijfsnaam" name="bedrijfsnaam" required value="{{ form_data.get('bedrijfsnaam','') }}">
+            </div>
+            <div class="form-group">
+                <label for="straat_bedrijf">Straatnaam (bedrijf)</label>
+                <input type="text" id="straat_bedrijf" name="straat_bedrijf" required value="{{ form_data.get('straat_bedrijf','') }}">
+            </div>
+            <div class="form-group">
+                <label for="postcode_bedrijf">Postcode (bedrijf)</label>
+                <input type="text" id="postcode_bedrijf" name="postcode_bedrijf" required pattern="^[1-9][0-9]{3}\s?[A-Z]{2}$" title="1234 AB" value="{{ form_data.get('postcode_bedrijf','') }}">
+            </div>
+            <div class="form-group">
+                <label for="plaats_bedrijf">Plaats (bedrijf)</label>
+                <input type="text" id="plaats_bedrijf" name="plaats_bedrijf" required value="{{ form_data.get('plaats_bedrijf','') }}">
+            </div>
+            <div class="form-group">
+                <label for="vergunning_type">Vergunningnummer (type)</label>
+                <select id="vergunning_type" name="vergunning_type_select" required disabled>
+                    <option value="">Kies een item</option>
+                    <option value="BD" {% if form_data.get('vergunning_type') == 'BD' %}selected{% endif %}>BD</option>
+                    <option value="HBD" {% if form_data.get('vergunning_type') == 'HBD' %}selected{% endif %}>HBD</option>
+                    <option value="HND" {% if form_data.get('vergunning_type') == 'HND' %}selected{% endif %}>HND</option>
+                    <option value="ND" {% if form_data.get('vergunning_type') == 'ND' %}selected{% endif %}>ND</option>
+                    <option value="PAC" {% if form_data.get('vergunning_type') == 'PAC' %}selected{% endif %}>PAC</option>
+                    <option value="PGW" {% if form_data.get('vergunning_type') == 'PGW' %}selected{% endif %}>PGW</option>
+                    <option value="POB" {% if form_data.get('vergunning_type') == 'POB' %}selected{% endif %}>POB</option>
+                    <option value="VTC" {% if form_data.get('vergunning_type') == 'VTC' %}selected{% endif %}>VTC</option>
+                </select>
+                <input type="hidden" id="vergunning_type_hidden" name="vergunning_type" value="{{ form_data.get('vergunning_type','') }}">
+            </div>
+            <div class="form-group">
+                <label for="vergunning_nummer">Vergunningnummer (nummer)</label>
+                <input type="text" id="vergunning_nummer" name="vergunning_nummer" required value="{{ form_data.get('vergunning_nummer','') }}" readonly>
+            </div>
+            <div class="form-group">
+                <label for="email_bedrijf">Emailadres (algemeen)</label>
+                <input type="email" id="email_bedrijf" name="email_bedrijf" required value="{{ form_data.get('email_bedrijf','') }}">
+            </div>
+            <div class="form-group">
+                <label for="telefoon_bedrijf">Telefoonnummer (bedrijf)</label>
+                <input type="tel" id="telefoon_bedrijf" name="telefoon_bedrijf" required pattern="^0[0-9]{9}$" title="Bijv. 0612345678" value="{{ form_data.get('telefoon_bedrijf','') }}">
+            </div>
+        </section>
+
+        <!-- 3. Medewerkergegevens -->
+        <section class="form-section">
+            <h2>3. Medewerkergegevens</h2>
+            <div class="form-group">
+                <label for="bsn">BSN nummer (9 cijfers)</label>
+                <input type="text" id="bsn" name="bsn" required pattern="^[0-9]{9}$" title="9 cijfers" value="{{ form_data.get('bsn','') }}">
+            </div>
+            <div class="form-group">
+                <label for="voorvoegsel">Voorvoegsel (optioneel)</label>
+                <input type="text" id="voorvoegsel" name="voorvoegsel" value="{{ form_data.get('voorvoegsel','') }}">
+            </div>
+            <div class="form-group">
+                <label for="achternaam">Geslachtsnaam (achternaam)</label>
+                <input type="text" id="achternaam" name="achternaam" required value="{{ form_data.get('achternaam','') }}">
+            </div>
+            <div class="form-group">
+                <label for="voornamen">Voornaam/voornamen</label>
+                <input type="text" id="voornamen" name="voornamen" required value="{{ form_data.get('voornamen','') }}">
+            </div>
+            <div class="form-group">
+                <label for="geboortedatum">Geboortedatum</label>
+                <input type="date" id="geboortedatum" name="geboortedatum" required value="{{ form_data.get('geboortedatum','') }}">
+            </div>
+            <div class="form-group">
+                <label for="geboorteplaats">Geboorteplaats</label>
+                <input type="text" id="geboorteplaats" name="geboorteplaats" required value="{{ form_data.get('geboorteplaats','') }}">
+            </div>
+            <div class="form-group">
+                <label for="geboorteland">Geboorteland</label>
+                <input type="text" id="geboorteland" name="geboorteland" required value="{{ form_data.get('geboorteland','') }}">
+            </div>
+            <div class="form-group">
+                <label for="straat_medewerker">Straatnaam (medewerker)</label>
+                <input type="text" id="straat_medewerker" name="straat_medewerker" required value="{{ form_data.get('straat_medewerker','') }}">
+            </div>
+            <div class="form-group">
+                <label for="huisnummer_medewerker">Huisnummer (medewerker)</label>
+                <input type="text" id="huisnummer_medewerker" name="huisnummer" required value="{{ form_data.get('huisnummer','') }}">
+            </div>
+            <div class="form-group">
+                <label for="postcode_medewerker">Postcode (medewerker)</label>
+                <input type="text" id="postcode_medewerker" name="postcode_medewerker" required pattern="^[1-9][0-9]{3}\s?[A-Z]{2}$" title="1234 AB" value="{{ form_data.get('postcode_medewerker','') }}">
+            </div>
+            <div class="form-group">
+                <label for="woonplaats_medewerker">Woonplaats (medewerker)</label>
+                <input type="text" id="woonplaats_medewerker" name="woonplaats_medewerker" required value="{{ form_data.get('woonplaats_medewerker','') }}">
+            </div>
+            <div class="form-group">
+                <label for="telefoon_medewerker">Telefoonnummer (medewerker)</label>
+                <input type="tel" id="telefoon_medewerker" name="telefoon_medewerker" required pattern="^0[0-9]{9}$" title="Bijv. 0612345678" value="{{ form_data.get('telefoon_medewerker','') }}">
+            </div>
+            <div class="form-group">
+                <label for="email_medewerker">Emailadres (medewerker)</label>
+                <input type="email" id="email_medewerker" name="email_medewerker" required value="{{ form_data.get('email_medewerker','') }}">
+            </div>
+        </section>
+
+        <!-- 4. Specifieke vragen over medewerker -->
+        <section class="form-section">
+            <h2>4. Specifieke vragen over medewerker</h2>
+            <div class="form-group">
+                <input type="checkbox" id="is_opsporingsambtenaar" name="is_opsporingsambtenaar" {% if form_data.get('is_opsporingsambtenaar') %}checked{% endif %}>
+                <label for="is_opsporingsambtenaar">Is medewerker opsporingsambtenaar?</label>
+            </div>
+            <div class="form-group" id="opsporing_extra" style="display:none;">
+                <label for="sinds_opsporing">Sinds (datum) (alleen indien van toepassing)</label>
+                <input type="date" id="sinds_opsporing" name="sinds" value="{{ form_data.get('sinds','') }}">
+                <label for="organisatie_opsporing">Bij welke organisatie (alleen indien van toepassing)</label>
+                <input type="text" id="organisatie_opsporing" name="organisatie" value="{{ form_data.get('organisatie','') }}">
+                <label for="functie_opsporing">Welke functie (alleen indien van toepassing)</label>
+                <input type="text" id="functie_opsporing" name="functie" value="{{ form_data.get('functie','') }}">
+            </div>
+            <div class="form-group">
+                <label for="svpb_nummer">SVPB nummer (optioneel, niet nodig voor voetbalsteward/horecaportier)</label>
+                <input type="text" id="svpb_nummer" name="svpb_nummer" value="{{ form_data.get('svpb_nummer','') }}">
+            </div>
+            <div class="form-group">
+                <input type="checkbox" id="in_opleiding" name="in_opleiding" {% if form_data.get('in_opleiding') %}checked{% endif %}>
+                <label for="in_opleiding">Is de medewerker in opleiding?</label>
+            </div>
+            <div class="form-group" id="einddatum_svpb_group" style="display:none;">
+                <label for="einddatum_svpb">Einddatum SVPB verklaring (optioneel)</label>
+                <input type="date" id="einddatum_svpb" name="einddatum_svpb" value="{{ form_data.get('einddatum_svpb','') }}">
+            </div>
+            <div class="form-group">
+                <label for="functie_gediplomeerd">Functie gediplomeerd</label>
+                <select id="functie_gediplomeerd" name="functie_gediplomeerd" required>
+                    <option value="Alarmcentrale" {% if form_data.get('functie_gediplomeerd') == 'Alarmcentrale' %}selected{% endif %}>Alarmcentrale</option>
+                    <option value="Algemene beveiliging" {% if form_data.get('functie_gediplomeerd') == 'Algemene beveiliging' %}selected{% endif %}>Algemene beveiliging</option>
+                    <option value="Bedrijfsbeveiliging" {% if form_data.get('functie_gediplomeerd') == 'Bedrijfsbeveiliging' %}selected{% endif %}>Bedrijfsbeveiliging</option>
+                    <option value="Beveiliger in opleiding" {% if form_data.get('functie_gediplomeerd') == 'Beveiliger in opleiding' %}selected{% endif %}>Beveiliger in opleiding</option>
+                    <option value="Evenementenbeveiliging" {% if form_data.get('functie_gediplomeerd') == 'Evenementenbeveiliging' %}selected{% endif %}>Evenementenbeveiliging</option>
+                    <option value="Geld- en Waardetransport" {% if form_data.get('functie_gediplomeerd') == 'Geld- en Waardetransport' %}selected{% endif %}>Geld- en Waardetransport</option>
+                    <option value="Horecabedrijfsbeveiliging" {% if form_data.get('functie_gediplomeerd') == 'Horecabedrijfsbeveiliging' %}selected{% endif %}>Horecabedrijfsbeveiliging</option>
+                    <option value="Horecabeveiliging" {% if form_data.get('functie_gediplomeerd') == 'Horecabeveiliging' %}selected{% endif %}>Horecabeveiliging</option>
+                    <option value="Recherche" {% if form_data.get('functie_gediplomeerd') == 'Recherche' %}selected{% endif %}>Recherche</option>
+                    <option value="Videotoezichtcentrale" {% if form_data.get('functie_gediplomeerd') == 'Videotoezichtcentrale' %}selected{% endif %}>Videotoezichtcentrale</option>
+                    <option value="Voetbalsteward" {% if form_data.get('functie_gediplomeerd') == 'Voetbalsteward' %}selected{% endif %}>Voetbalsteward</option>
+                    <option value="Overige functies" {% if form_data.get('functie_gediplomeerd') == 'Overige functies' %}selected{% endif %}>Overige functies</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <input type="checkbox" id="certificaat_winkelsurveillant" name="certificaat_winkelsurveillant" {% if form_data.get('certificaat_winkelsurveillant') %}checked{% endif %}>
+                <label for="certificaat_winkelsurveillant">Inclusief certificaat winkelsurveillant?</label>
+            </div>
+            <div class="form-group">
+                <input type="checkbox" id="certificaat_persoonsbeveiliger" name="certificaat_persoonsbeveiliger" {% if form_data.get('certificaat_persoonsbeveiliger') %}checked{% endif %}>
+                <label for="certificaat_persoonsbeveiliger">Inclusief certificaat persoonsbeveiliger?</label>
+            </div>
+            <div class="form-group">
+                <label for="latere_begindatum">Latere begindatum (optioneel)</label>
+                <input type="date" id="latere_begindatum" name="latere_begindatum" value="{{ form_data.get('latere_begindatum','') }}">
+            </div>
+        </section>
+
+        <!-- 5. Verklaringen & ondertekening -->
+        <section class="form-section">
+            <h2>5. Naam & Plaats</h2>
+            <div class="form-group">
+                <label for="naam_contactpersoon">Naam contactpersoon (verplicht)</label>
+                <input type="text" id="naam_contactpersoon" name="naam_contactpersoon" required value="{{ form_data.get('naam_contactpersoon','') }}">
+            </div>
+            <div class="form-group">
+                <label for="plaats_ondertekening">Plaats (invullen verplicht)</label>
+                <input type="text" id="plaats_ondertekening" name="plaats_ondertekening" required value="{{ form_data.get('plaats_ondertekening','') }}">
+            </div>
+        </section>
+
+        <!-- 6. Bijlagen toevoegen (Stap 1) -->
+        <section class="form-section">
+            <h2>6. Bijlagen toevoegen</h2>
+            {% if edit_mode %}
+            <div class="alert alert-info" style="margin-bottom:1em;">
+                <strong>Let op:</strong> Je bent in wijzigingsmodus. Alle eerder geüploade bestanden zijn verwijderd. 
+                Voeg de benodigde bijlagen opnieuw toe.
+            </div>
+            {% endif %}
+            <h5 style="color: rgba(73, 73, 73, 0.377)">Pasfoto, Handtekening en Logo worden automatisch aangepast aan de eisen van de afdeling Korpscheftaken</h5>
+            <h5 style="color: rgba(73, 73, 73, 0.377)">Bestanden worden veilig in je browser opgeslagen en alleen naar de server gestuurd bij definitieve verzending</h5>
+            <br>
+            <div class="form-group bijlage-group">
+                <div style="display:flex;flex-direction:row;align-items:center;">
+                    <input type="checkbox" id="id" name="id" {% if form_data.get('id') %}checked{% endif %}>
+                    <label for="id">Kleurenkopie identiteitsbewijs medewerker</label>
+                </div>
+                <div style="width:100%">
+                    <input type="file" id="id_file" name="id_file" accept=".jpg,.jpeg,.png,.pdf" style="display: block;" multiple>
+                    <small style="display:none;color:#666;margin-left:2.1em;" id="id_file_hint">Maximaal 2 bestanden (voor- en achterzijde)</small>
+                    <!-- Client-side preview wordt hier dynamisch toegevoegd -->
+                </div>
+            </div>
+            <div class="form-group bijlage-group">
+                <div style="display:flex;flex-direction:row;align-items:center;">
+                    <input type="checkbox" id="pasfoto" name="pasfoto" {% if form_data.get('pasfoto') %}checked{% endif %}>
+                    <label for="pasfoto">Pasfoto medewerker</label>
+                </div>
+                <div style="width:100%">
+                    <input type="file" id="pasfoto_file" name="pasfoto_file" accept=".jpg,.jpeg,.png" style="display: block; margin-top: 0.5em; margin-left: 0px;">
+                    <!-- Client-side preview wordt hier dynamisch toegevoegd -->
+                </div>
+            </div>
+            <div class="form-group bijlage-group">
+                <div style="display:flex;flex-direction:row;align-items:center;">
+                    <input type="checkbox" id="handtekening" name="handtekening" {% if form_data.get('handtekening') %}checked{% endif %}>
+                    <label for="handtekening">Handtekening los</label>
+                </div>
+                <div style="width:100%">
+                    <input type="file" id="handtekening_file" name="handtekening_file" accept=".jpg,.jpeg,.png" style="display: block; margin-top: 0.5em; margin-left: 0px;">
+                    <!-- Client-side preview wordt hier dynamisch toegevoegd -->
+                </div>
+            </div>
+            <div class="form-group bijlage-group">
+                <div style="display:flex;flex-direction:row;align-items:center;">
+                    <input type="checkbox" id="svpb" name="svpb" {% if form_data.get('svpb') %}checked{% endif %}>
+                    <label for="svpb">SVPB verklaring</label>
+                </div>
+                <div style="width:100%">
+                    <input type="file" id="svpb_file" name="svpb_file" accept=".jpg,.jpeg,.png,.pdf,.docx" style="display: block; margin-top: 0.5em; margin-left: 0px;">
+                    <!-- Client-side preview wordt hier dynamisch toegevoegd -->
+                </div>
+            </div>
+            <div class="form-group bijlage-group">
+                <div style="display:flex;flex-direction:row;align-items:center;">
+                    <input type="checkbox" id="horeca" name="horeca" {% if form_data.get('horeca') %}checked{% endif %}>
+                    <label for="horeca">Diploma Horecaportier</label>
+                </div>
+                <div style="width:100%">
+                    <input type="file" id="horeca_file" name="horeca_file" accept=".jpg,.jpeg,.png,.pdf,.docx" style="display: block; margin-top: 0.5em; margin-left: 0px;">
+                    <!-- Client-side preview wordt hier dynamisch toegevoegd -->
+                </div>
+            </div>
+            <div class="form-group bijlage-group">
+                <div style="display:flex;flex-direction:row;align-items:center;">
+                    <input type="checkbox" id="voetbal" name="voetbal" {% if form_data.get('voetbal') %}checked{% endif %}>
+                    <label for="voetbal">Certificaat Voetbalsteward</label>
+                </div>
+                <div style="width:100%">
+                    <input type="file" id="voetbal_file" name="voetbal_file" accept=".jpg,.jpeg,.png,.pdf,.docx" style="display: block; margin-top: 0.5em; margin-left: 0px;">
+                    <!-- Client-side preview wordt hier dynamisch toegevoegd -->
+                </div>
+            </div>
+            <div class="form-group bijlage-group">
+                <div style="display:flex;flex-direction:row;align-items:center;">
+                    <input type="checkbox" id="logo" name="logo" {% if form_data.get('logo') %}checked{% endif %}>
+                    <label for="logo">Logo organisatie (niet verplicht)</label>
+                </div>
+                <div style="width:100%">
+                    <input type="file" id="logo_file" name="logo_file" accept=".jpg,.jpeg,.png" style="display: block; margin-top: 0.5em; margin-left: 0px;">
+                    <!-- Client-side preview wordt hier dynamisch toegevoegd -->
+                </div>
+            </div>
+            <div class="form-group bijlage-group">
+                <div style="display:flex;flex-direction:row;align-items:center;">
+                    <input type="checkbox" id="straf_belgie" name="straf_belgie" {% if form_data.get('straf_belgie') %}checked{% endif %}>
+                    <label for="straf_belgie">Verklaring uit strafregister (medewerker woont in België)</label>
+                </div>
+                <div style="width:100%">
+                    <input type="file" id="straf_belgie_file" name="straf_belgie_file" accept=".jpg,.jpeg,.png,.pdf,.docx" style="display: block; margin-top: 0.5em; margin-left: 0px;">
+                    <!-- Client-side preview wordt hier dynamisch toegevoegd -->
+                </div>
+            </div>
+            <div class="form-group bijlage-group">
+                <div style="display:flex;flex-direction:row;align-items:center;">
+                    <input type="checkbox" id="fuhrung" name="fuhrung" {% if form_data.get('fuhrung') %}checked{% endif %}>
+                    <label for="fuhrung">Führungszeugnis (medewerker woont in Duitsland)</label>
+                </div>
+                <div style="width:100%">
+                    <input type="file" id="fuhrung_file" name="fuhrung_file" accept=".jpg,.jpeg,.png,.pdf,.docx" style="display: block; margin-top: 0.5em; margin-left: 0px;">
+                    <!-- Client-side preview wordt hier dynamisch toegevoegd -->
+                </div>
+            </div>
+            <div class="form-group bijlage-group">
+                <div style="display:flex;flex-direction:row;align-items:center;">
+                    <input type="checkbox" id="straf_herkomst" name="straf_herkomst" {% if form_data.get('straf_herkomst') %}checked{% endif %}>
+                    <label for="straf_herkomst">Verklaring uit strafregister land van herkomst (medewerker woont korter dan 8 jaar in Nederland)</label>
+                </div>
+                <div style="width:100%">
+                    <input type="file" id="straf_herkomst_file" name="straf_herkomst_file" accept=".jpg,.jpeg,.png,.pdf,.docx" style="display: block; margin-top: 0.5em; margin-left: 0px;">
+                    <!-- Client-side preview wordt hier dynamisch toegevoegd -->
+                </div>
+            </div>
+            <div class="form-group bijlage-group">
+                <div style="display:flex;flex-direction:row;align-items:center;">
+                    <input type="checkbox" id="pv" name="pv" {% if form_data.get('pv') %}checked{% endif %}>
+                    <label for="pv">PV aangifte diefstal of bewijs van vermissing</label>
+                </div>
+                <div style="width:100%">
+                    <input type="file" id="pv_file" name="pv_file" accept=".jpg,.jpeg,.png,.pdf,.docx" style="display: block; margin-top: 0.5em; margin-left: 0px;">
+                    <!-- Client-side preview wordt hier dynamisch toegevoegd -->
+                </div>
+            </div>
+        </section>
+
+        <!-- 8. Afdeling Korpscheftaken -->
+        <section class="form-section">
+            <h2>Afdeling Korpscheftaken</h2>
+            <div class="form-group">
+                <label for="afdeling_select">Afdeling Korpscheftaken</label>
+                <select id="afdeling_select" name="afdeling_select" required></select>
+            </div>
+            <div class="form-group">
+                <label for="email_opties_select">E-mailadres afdeling</label>
+                <select id="email_opties_select" name="email_opties_select" required></select>
+            </div>
+        </section>
+
+        <!-- 9. Uw e-mailadres (Verzendadres en BCC) -->
+        <section class="form-section">
+            <h2>8. Uw e-mailadres (Verzendadres en BCC)</h2>
+            <div class="form-group">
+                <label for="afzender_email_verzend">Uw e-mailadres</label>
+                <input type="email" id="afzender_email_verzend" name="afzender_email_verzend" readonly value="{{ session.get('user_email', '') }}" style="background-color: #f8f9fa;">
+            </div>
+        </section>
+
+        <!-- Verzenden -->
+        <div class="form-actions">
+            <button type="button" id="dummyDataBtn" class="btn btn-secondary">Vul met dummy gegevens</button>
+            <button type="submit" class="btn btn-primary">Controleren</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// --- Dynamische afdeling/e-mail selectie ---
+const korpscheftaken = {{ korpscheftaken|safe }};
+const afdelingSelect = document.getElementById('afdeling_select');
+const emailSelect = document.getElementById('email_opties_select');
+
+function fillAfdelingen() {
+    if (!afdelingSelect) return;
+    afdelingSelect.innerHTML = '';
+    Object.keys(korpscheftaken).forEach(afdeling => {
+        const opt = document.createElement('option');
+        opt.value = afdeling;
+        opt.textContent = afdeling;
+        afdelingSelect.appendChild(opt);
+    });
+}
+
+function updateEmailOptions() {
+    if (!afdelingSelect || !emailSelect) return;
+    const afdeling = afdelingSelect.value;
+    const opties = korpscheftaken[afdeling] || [];
+    emailSelect.innerHTML = '';
+    opties.forEach(email => {
+        const opt = document.createElement('option');
+        opt.value = email;
+        opt.textContent = email;
+        emailSelect.appendChild(opt);
+    });
+}
+
+// --- Dynamische velden tonen/verbergen ---
+function setupDynamicFields() {
+    const opsporingsambtenaar = document.getElementById('is_opsporingsambtenaar');
+    const opsporingExtra = document.getElementById('opsporing_extra');
+    if (opsporingsambtenaar && opsporingExtra) {
+        opsporingsambtenaar.addEventListener('change', function() {
+            opsporingExtra.style.display = this.checked ? 'block' : 'none';
+        });
+    }
+
+    const inOpleiding = document.getElementById('in_opleiding');
+    const einddatumGroup = document.getElementById('einddatum_svpb_group');
+    if (inOpleiding && einddatumGroup) {
+        inOpleiding.addEventListener('change', function() {
+            einddatumGroup.style.display = this.checked ? 'block' : 'none';
+        });
+    }
+}
+
+// Dummy data functie
+function setupDummyData() {
+    const dummyDataBtn = document.getElementById('dummyDataBtn');
+    if (dummyDataBtn) {
+        dummyDataBtn.addEventListener('click', () => {
+            const dummyData = {
+                datum_aanvraag: '2024-01-01',
+                type_aanvraag: 'Eerste aanvraag',
+                bedrijfsnaam: 'Voorbeeld BV',
+                straat_bedrijf: 'Bedrijfsstraat 1',
+                postcode_bedrijf: '1234 AB',
+                plaats_bedrijf: 'Amsterdam',
+                vergunning_type: 'ND',
+                vergunning_nummer: '123456',
+                email_bedrijf: 'info@voorbeeld.nl',
+                telefoon_bedrijf: '0612345678',
+                bsn: '123456789',
+                voorvoegsel: 'van',
+                achternaam: 'Jansen',
+                voornamen: 'Piet',
+                geboortedatum: '1990-01-01',
+                geboorteplaats: 'Amsterdam',
+                geboorteland: 'Nederland',
+                straat_medewerker: 'Hoofdstraat',
+                huisnummer_medewerker: '2',
+                postcode_medewerker: '5678 CD',
+                woonplaats_medewerker: 'Rotterdam',
+                telefoon_medewerker: '0687654321',
+                email_medewerker: 'piet.jansen@voorbeeld.nl',
+                svpb_nummer: 'SVPB123',
+                functie_gediplomeerd: 'Algemene beveiliging',
+                naam_contactpersoon: 'Jan de Contactpersoon',
+                plaats_ondertekening: 'Utrecht',
+                latere_begindatum: '2025-08-01',
+                afdeling_select: 'TEST',
+                email_opties_select: 'guus@praesidion.nl',
+                afzender_email_verzend: 'info@praesidion.nl'
+            };
+
+            Object.entries(dummyData).forEach(([id, value]) => {
+                const input = document.getElementById(id);
+                if (input) input.value = value;
+            });
+
+            // Afdeling altijd TEST, email afdeling altijd guus@praesidion.nl
+            if (afdelingSelect) {
+                afdelingSelect.value = 'TEST';
+                afdelingSelect.dispatchEvent(new Event('change'));
+            }
+            if (emailSelect) {
+                emailSelect.value = 'guus@praesidion.nl';
+            }
+
+            // Checkboxes
+            [
+                'is_opsporingsambtenaar', 'in_opleiding', 'certificaat_winkelsurveillant',
+                'certificaat_persoonsbeveiliger', 'id', 'pasfoto', 'handtekening', 'svpb',
+                'horeca', 'voetbal', 'logo', 'straf_belgie', 'fuhrung', 'straf_herkomst', 'pv'
+            ].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.checked = false;
+            });
+
+            updateEmailOptions();
+            // Email afdeling nogmaals forceren
+            if (emailSelect) {
+                emailSelect.value = 'guus@praesidion.nl';
+            }
+        });
+    }
+}
+
+// Profielgegevens en WPBR-register automatisch invullen
+function setupProfileData() {
+    const profiel = {
+        email: "{{ current_user.email }}",
+        naam: "{{ current_user.name }}",
+        vergunningnummer: "{{ current_user.vergunningnummer }}"
+    };
+    
+    function vulFormulierMetProfiel() {
+        const emailBedrijf = document.getElementById('email_bedrijf');
+        if (emailBedrijf && profiel.email) emailBedrijf.value = profiel.email;
+        const naamContact = document.getElementById('naam_contactpersoon');
+        if (naamContact && profiel.naam) naamContact.value = profiel.naam;
+        fetch('/wpbr.json')
+            .then(r => r.json())
+            .then(data => {
+                const bedrijf = data.find(item => (item['Vergunning nummer']||'').toUpperCase() === (profiel.vergunningnummer||'').toUpperCase());
+                if (bedrijf) {
+                    const bedrijfsnaam = document.getElementById('bedrijfsnaam');
+                    if (bedrijfsnaam) bedrijfsnaam.value = bedrijf['Ondernemingsnaam'] || '';
+                    const plaatsBedrijf = document.getElementById('plaats_bedrijf');
+                    if (plaatsBedrijf) plaatsBedrijf.value = bedrijf['Adres'] || '';
+                    const vergunningType = document.getElementById('vergunning_type');
+                    const vergunningTypeHidden = document.getElementById('vergunning_type_hidden');
+                    if (vergunningType && bedrijf['Rubriek']) {
+                        vergunningType.value = bedrijf['Rubriek'];
+                        if (vergunningTypeHidden) vergunningTypeHidden.value = bedrijf['Rubriek'];
+                    }
+                    const vergunningNummer = document.getElementById('vergunning_nummer');
+                    if (vergunningNummer && bedrijf['Rubrieknummer']) vergunningNummer.value = bedrijf['Rubrieknummer'];
+                    const plaatsOndertekening = document.getElementById('plaats_ondertekening');
+                    if (plaatsOndertekening && bedrijf['Adres']) plaatsOndertekening.value = bedrijf['Adres'];
+                }
+            });
+    }
+    
+    vulFormulierMetProfiel();
+}
+
+// Houd hidden input in sync met select
+function setupVergunningSync() {
+    const vergunningType = document.getElementById('vergunning_type');
+    const vergunningTypeHidden = document.getElementById('vergunning_type_hidden');
+    if (vergunningType && vergunningTypeHidden) {
+        vergunningTypeHidden.value = vergunningType.value;
+    }
+}
+
+// Page unload cleanup
+function setupPageUnload() {
+    window.addEventListener('beforeunload', function(e) {
+        // Only show confirmation if there are uploaded files
+        if (document.querySelector('input[type="file"]').files.length > 0) {
+            e.preventDefault();
+            e.returnValue = '';
+            // Make an AJAX call to cleanup endpoint
+            fetch('/cleanup', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'same-origin'
+            });
+        }
+    });
+}
+
+// Initialize everything when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    fillAfdelingen();
+    if (afdelingSelect) {
+        afdelingSelect.value = "{{ form_data.get('afdeling_select', '') }}";
+    }
+    updateEmailOptions();
+    if (emailSelect) {
+        emailSelect.value = "{{ form_data.get('email_opties_select', '') }}";
+    }
+    
+    if (afdelingSelect) {
+        afdelingSelect.addEventListener('change', updateEmailOptions);
+    }
+    
+    setupDynamicFields();
+    setupDummyData();
+    setupProfileData();
+    setupVergunningSync();
+    setupPageUnload();
+});
+</script>
+{% endblock %} 

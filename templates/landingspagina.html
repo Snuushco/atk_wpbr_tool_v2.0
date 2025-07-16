@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="landing-container">
+  <div class="card">
+    <h1>Gesloten bèta: ATK-WPBR Tool</h1>
+    <p class="subtitle">Voor maximaal 25 beveiligingsbedrijven</p>
+    <ul class="voordelen">
+      <li>✔️ Foutloze WPBR-aanvragen</li>
+      <li>✔️ Directe koppeling met het Justis-register</li>
+      <li>✔️ Tijdsbesparing en minder administratieve lasten</li>
+      <li>✔️ Eenvoudig, veilig en AVG-proof</li>
+    </ul>
+    <form id="registerForm" class="auth-form">
+      <div class="form-group" style="align-items: flex-start;">
+        <label for="vergunningnummer">Vergunningnummer</label>
+        <input type="text" id="vergunningnummer" name="vergunningnummer" required pattern="^(ND|BD|HBD|HND|PAC|PGW|POB|VTC)[0-9]{5}$" title="Vergunningnummer" placeholder="Bijv. ND6250">
+      </div>
+      <div class="form-group">
+        <label for="bedrijf">Bedrijfsnaam</label>
+        <input type="text" id="bedrijf" name="bedrijf" required placeholder="Bijv. Praesidion">
+      </div>
+      <div class="form-group">
+        <label for="name">Naam contactpersoon</label>
+        <input type="text" id="name" name="name" required placeholder="Bijv. Jan Jansen">
+      </div>
+      <div class="form-group">
+        <label for="email">E-mailadres</label>
+        <input type="email" id="email" name="email" required>
+      </div>
+      <div class="form-group">
+        <label for="password">Wachtwoord</label>
+        <input type="password" id="password" name="password" required>
+      </div>
+      <div class="form-group">
+        <label for="confirm_password">Bevestig wachtwoord</label>
+        <input type="password" id="confirm_password" name="confirm_password" required>
+      </div>
+      <div class="form-group terms-group" style="margin-top: 1.5em;">
+        <div class="terms-checkbox">
+          <input type="checkbox" id="terms_agreement" name="terms_agreement" required>
+          <label for="terms_agreement">
+            Ik ga akkoord met de <a href="/gebruikersovereenkomst" target="_blank">Gebruikersovereenkomst</a>
+          </label>
+        </div>
+        <div class="terms-checkbox">
+          <input type="checkbox" id="privacy_agreement" name="privacy_agreement" required>
+          <label for="privacy_agreement">
+            Ik ga akkoord met de <a href="/privacyverklaring" target="_blank">Privacyverklaring</a>
+          </label>
+        </div>
+      </div>
+      <div id="registerError" class="alert alert-error" style="display:none;"></div>
+      <div class="form-group">
+        <button type="submit" class="btn btn-primary">Aanmelden</button>
+      </div>
+    </form>
+  </div>
+</div>
+<div id="bevestiging" class="card" style="display:none;max-width:500px;margin:2rem auto;">
+  <h2>Bedankt voor je aanmelding!</h2>
+  <p>
+    Je kunt nu direct verder met het invullen van het <a href="/form" class="btn-link">WPBR-aanvraagformulier</a>.
+  </p>
+</div>
+{% endblock %}
+{% block extra_css %}
+<style>
+.landing-container {
+  max-width: 500px;
+  margin: 2.5rem auto;
+  padding: 1rem;
+}
+.card {
+  background: #f8fafd;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  padding: 2rem 1.5rem 1.5rem 1.5rem;
+  margin-bottom: 2rem;
+}
+.subtitle {
+  color: #1976d2;
+  font-size: 1.1em;
+  margin-bottom: 1.2em;
+}
+.voordelen {
+  list-style: none;
+  padding: 0;
+  margin-bottom: 2em;
+}
+.voordelen li {
+  margin-bottom: 0.5em;
+  font-size: 1.08em;
+}
+.signup-form .form-group {
+  margin-bottom: 1.1em;
+  display: flex;
+  flex-direction: column;
+}
+.signup-form input {
+  padding: 0.5em;
+  border-radius: 6px;
+  border: 1px solid #bfc9d1;
+  font-size: 1em;
+}
+.btn.btn-primary {
+  background: #1976d2;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.7em 1.2em;
+  font-size: 1em;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.btn.btn-primary:hover {
+  background: #1256a3;
+}
+.alert {
+  margin-top: 1em;
+  padding: 0.7em 1em;
+  border-radius: 6px;
+  font-size: 1em;
+  background: #eaffea;
+  color: #197d2b;
+}
+.alert-error {
+  background: #ffeaea;
+  color: #c00;
+  border: 1.5px solid #c00;
+}
+@media (max-width: 600px) {
+  .landing-container { padding: 0.5rem; }
+  .card { padding: 1rem; }
+}
+.btn-link {
+  color: #1976d2;
+  text-decoration: underline;
+  font-weight: bold;
+  cursor: pointer;
+}
+.btn-link:hover {
+  color: #1256a3;
+}
+</style>
+{% endblock %}
+{% block extra_js %}
+<script>
+document.getElementById('registerForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const errorDiv = document.getElementById('registerError');
+  errorDiv.style.display = 'none';
+  errorDiv.textContent = '';
+
+  const password = document.getElementById('password').value;
+  const confirmPassword = document.getElementById('confirm_password').value;
+  if (password !== confirmPassword) {
+    errorDiv.textContent = 'Wachtwoorden komen niet overeen';
+    errorDiv.style.display = 'block';
+    return;
+  }
+
+  if (!document.getElementById('terms_agreement').checked || !document.getElementById('privacy_agreement').checked) {
+    errorDiv.textContent = 'U moet akkoord gaan met de Gebruikersovereenkomst en Privacyverklaring';
+    errorDiv.style.display = 'block';
+    return;
+  }
+
+  const formData = {
+    bedrijf: document.getElementById('bedrijf').value,
+    name: document.getElementById('name').value,
+    email: document.getElementById('email').value,
+    password: password,
+    vergunningnummer: document.getElementById('vergunningnummer').value,
+    terms_accepted: document.getElementById('terms_agreement').checked,
+    privacy_accepted: document.getElementById('privacy_agreement').checked
+  };
+
+  try {
+    const response = await fetch('/beta/register', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(formData)
+    });
+    const data = await response.json();
+    if (data.success) {
+      document.getElementById('registerForm').style.display = 'none';
+      document.getElementById('bevestiging').style.display = 'block';
+    } else {
+      errorDiv.textContent = data.message || 'Registratie mislukt';
+      errorDiv.style.display = 'block';
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    errorDiv.textContent = 'Er is een fout opgetreden bij het registreren';
+    errorDiv.style.display = 'block';
+  }
+});
+</script>
+{% endblock %} 

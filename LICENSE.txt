@@ -1,0 +1,7 @@
+Copyright (c) 2024 Praesidion BV
+
+Alle rechten voorbehouden.
+
+Het is niet toegestaan deze software geheel of gedeeltelijk te kopiëren, te reverse engineeren, te decompileren, te wijzigen, te distribueren of op enige andere wijze te gebruiken zonder uitdrukkelijke schriftelijke toestemming van de rechthebbende.
+
+Ongeoorloofd gebruik, verspreiding of wijziging van deze software is strafbaar en zal juridisch worden vervolgd. 

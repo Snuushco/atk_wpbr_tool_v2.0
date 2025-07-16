@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="auth-container">
+    <h1>Inloggen</h1>
+    <form id="loginForm" class="auth-form">
+        <div class="form-group">
+            <label for="email">E-mailadres</label>
+            <input type="email" id="email" name="email" required>
+        </div>
+        <div class="form-group">
+            <label for="password">Wachtwoord</label>
+            <input type="password" id="password" name="password" required>
+        </div>
+        <div class="form-group">
+            <button type="submit" class="btn btn-primary">Inloggen</button>
+        </div>
+        <div class="form-links">
+            <p>Nog geen account? <a href="{{ url_for('register') }}">Registreer hier</a></p>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const formData = {
+        email: document.getElementById('email').value,
+        password: document.getElementById('password').value
+    };
+    
+    try {
+        const response = await fetch('/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            window.location.href = data.redirect;
+        } else {
+            alert(data.message || 'Inloggen mislukt');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Er is een fout opgetreden bij het inloggen');
+    }
+});
+</script>
+{% endblock %} 

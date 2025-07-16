@@ -1,0 +1,361 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="success-message">
+        <h1>Bedankt voor je aanvraag!</h1>
+        <p>Je aanvraag is succesvol verzonden. Je ontvangt een bevestiging per e-mail.</p>
+        
+        <div class="bevestiging-info">
+            <h2>Bevestiging</h2>
+            <ul>
+                <li><strong>Naam:</strong> {{ bevestiging.naam }}</li>
+                <li><strong>Afdeling:</strong> {{ bevestiging.afdeling }}</li>
+                <li><strong>E-mail afdeling:</strong> {{ bevestiging.email_afdeling }}</li>
+                <li><strong>Datum:</strong> {{ bevestiging.datum }}</li>
+                <li><strong>Aantal bijlagen:</strong> {{ bevestiging.aantal_bijlagen }}</li>
+                <li><strong>Kopie wordt verstuurd naar:</strong> {{ bevestiging['Kopie wordt verstuurd naar'] }}</li>
+            </ul>
+        </div>
+
+        <!-- Email Status Sectie -->
+        {% if bevestiging.email_tracking %}
+        <div class="email-status">
+            <h2>Email Status</h2>
+            
+            <!-- Hoofdemail naar afdeling -->
+            <div class="email-status-item">
+                <h3>Email naar afdeling Korpscheftaken</h3>
+                <div class="status-grid">
+                    <div class="status-item">
+                        <span class="status-label">Verzonden:</span>
+                        <span class="status-value">
+                            {% if bevestiging.email_tracking.main_email.sent_at %}
+                                {{ bevestiging.email_tracking.main_email.sent_at }}
+                                <span class="status-icon success">✓</span>
+                            {% else %}
+                                <span class="status-icon error">✗</span>
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Afgeleverd:</span>
+                        <span class="status-value">
+                            {% if bevestiging.email_tracking.main_email.delivered_at %}
+                                {{ bevestiging.email_tracking.main_email.delivered_at }}
+                                <span class="status-icon success">✓</span>
+                            {% else %}
+                                <span class="status-text">Wordt gecontroleerd...</span>
+                                <span class="status-icon pending">⏳</span>
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Gelezen:</span>
+                        <span class="status-value">
+                            {% if bevestiging.email_tracking.main_email.read_at %}
+                                {{ bevestiging.email_tracking.main_email.read_at }}
+                                <span class="status-icon success">✓</span>
+                                <span class="read-count">({{ bevestiging.email_tracking.main_email.read_count }}x)</span>
+                            {% else %}
+                                <span class="status-text">Nog niet gelezen</span>
+                                <span class="status-icon pending">👁️</span>
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bevestigingsemail naar gebruiker -->
+            {% if bevestiging.confirmation_sent %}
+            <div class="email-status-item">
+                <h3>Bevestigingsemail naar jou</h3>
+                <div class="status-grid">
+                    <div class="status-item">
+                        <span class="status-label">Verzonden:</span>
+                        <span class="status-value">
+                            {% if bevestiging.email_tracking.confirmation_email.sent_at %}
+                                {{ bevestiging.email_tracking.confirmation_email.sent_at }}
+                                <span class="status-icon success">✓</span>
+                            {% else %}
+                                <span class="status-icon error">✗</span>
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Afgeleverd:</span>
+                        <span class="status-value">
+                            {% if bevestiging.email_tracking.confirmation_email.delivered_at %}
+                                {{ bevestiging.email_tracking.confirmation_email.delivered_at }}
+                                <span class="status-icon success">✓</span>
+                            {% else %}
+                                <span class="status-text">Wordt gecontroleerd...</span>
+                                <span class="status-icon pending">⏳</span>
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Gelezen:</span>
+                        <span class="status-value">
+                            {% if bevestiging.email_tracking.confirmation_email.read_at %}
+                                {{ bevestiging.email_tracking.confirmation_email.read_at }}
+                                <span class="status-icon success">✓</span>
+                                <span class="read-count">({{ bevestiging.email_tracking.confirmation_email.read_count }}x)</span>
+                            {% else %}
+                                <span class="status-text">Nog niet gelezen</span>
+                                <span class="status-icon pending">👁️</span>
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <div class="feedback-form">
+            <h2>Feedback</h2>
+            <p>We horen graag je ervaring met het aanvraagproces. Je feedback helpt ons de tool te verbeteren.</p>
+            
+            <form id="feedbackForm">
+                <div class="form-group">
+                    <label for="feedback_rating">Hoe tevreden ben je met het aanvraagproces?</label>
+                    <div class="rating">
+                        <input type="radio" id="star5" name="rating" value="5" />
+                        <label for="star5">★</label>
+                        <input type="radio" id="star4" name="rating" value="4" />
+                        <label for="star4">★</label>
+                        <input type="radio" id="star3" name="rating" value="3" />
+                        <label for="star3">★</label>
+                        <input type="radio" id="star2" name="rating" value="2" />
+                        <label for="star2">★</label>
+                        <input type="radio" id="star1" name="rating" value="1" />
+                        <label for="star1">★</label>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="feedback_text">Heb je suggesties voor verbetering?</label>
+                    <textarea id="feedback_text" name="feedback_text" rows="4" placeholder="Deel hier je feedback..."></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary">Verstuur feedback</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+.rating {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+}
+
+.rating input {
+    display: none;
+}
+
+.rating label {
+    cursor: pointer;
+    font-size: 30px;
+    color: #ddd;
+    padding: 5px;
+}
+
+.rating input:checked ~ label,
+.rating label:hover,
+.rating label:hover ~ label {
+    color: #ffd700;
+}
+
+.bevestiging-info {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 5px;
+    margin: 20px 0;
+}
+
+.bevestiging-info ul {
+    list-style: none;
+    padding: 0;
+}
+
+.bevestiging-info li {
+    margin: 10px 0;
+}
+
+.feedback-form {
+    margin-top: 30px;
+    padding: 20px;
+    background: #fff;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.success-message {
+    text-align: center;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    resize: vertical;
+}
+
+.email-status {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 5px;
+    margin: 20px 0;
+    border-left: 4px solid #007bff;
+}
+
+.email-status h2 {
+    color: #007bff;
+    margin-bottom: 20px;
+}
+
+.email-status-item {
+    margin-bottom: 25px;
+    padding: 15px;
+    background: white;
+    border-radius: 5px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.email-status-item h3 {
+    margin: 0 0 15px 0;
+    color: #333;
+    font-size: 1.1em;
+}
+
+.status-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+.status-item {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.status-label {
+    font-weight: bold;
+    color: #666;
+    font-size: 0.9em;
+}
+
+.status-value {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.95em;
+}
+
+.status-icon {
+    font-size: 1.2em;
+    font-weight: bold;
+}
+
+.status-icon.success {
+    color: #28a745;
+}
+
+.status-icon.error {
+    color: #dc3545;
+}
+
+.status-icon.pending {
+    color: #ffc107;
+}
+
+.status-text {
+    color: #666;
+    font-style: italic;
+}
+
+.read-count {
+    color: #007bff;
+    font-size: 0.8em;
+    font-weight: bold;
+}
+</style>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Email status real-time updates
+function updateEmailStatus() {
+    const emailStatusSection = document.querySelector('.email-status');
+    if (!emailStatusSection) return;
+    
+    // Haal email tracking data op
+    const emailTrackingData = {{ bevestiging.email_tracking|tojson|safe }};
+    if (!emailTrackingData || !emailTrackingData.main_email) return;
+    
+    // Update status elke 30 seconden
+    setInterval(async () => {
+        try {
+            // Hier zou je een API call kunnen maken om de status bij te werken
+            // Voor nu tonen we alleen de initiële status
+            console.log('Email status wordt gecontroleerd...');
+        } catch (error) {
+            console.error('Error updating email status:', error);
+        }
+    }, 30000);
+}
+
+// Initialize email status updates
+document.addEventListener('DOMContentLoaded', () => {
+    updateEmailStatus();
+});
+
+document.getElementById('feedbackForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const rating = document.querySelector('input[name="rating"]:checked')?.value;
+    const feedbackText = document.getElementById('feedback_text').value;
+    
+    if (!rating) {
+        alert('Selecteer een beoordeling');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/feedback', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                rating: rating,
+                feedback_text: feedbackText
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert('Bedankt voor je feedback!');
+            document.getElementById('feedbackForm').reset();
+        } else {
+            alert(data.message || 'Er is een fout opgetreden bij het versturen van je feedback.');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Er is een fout opgetreden bij het versturen van je feedback.');
+    }
+});
+</script>
+{% endblock %} 
