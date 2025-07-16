@@ -4,6 +4,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from dotenv import load_dotenv
 import logging
+from modules.email_config import get_smtp_config
 
 # Laad environment variables
 load_dotenv()
@@ -12,10 +13,11 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 
 # SMTP configuratie
-SMTP_SERVER = os.getenv('SMTP_SERVER', 'smtp.gmail.com')
-SMTP_PORT = int(os.getenv('SMTP_PORT', '587'))
-SMTP_USERNAME = os.getenv('SMTP_USERNAME') or os.getenv('SMTP_USER')
-SMTP_PASSWORD = os.getenv('SMTP_PASSWORD')
+config = get_smtp_config()
+SMTP_SERVER = config['server']
+SMTP_PORT = config['port']
+SMTP_USERNAME = config['user']
+SMTP_PASSWORD = config['password']
 SMTP_FROM = os.getenv('SMTP_FROM') or SMTP_USERNAME
 
 def test_email_config():

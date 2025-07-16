@@ -4,16 +4,18 @@ import mimetypes
 import os
 from dotenv import load_dotenv
 import logging
+from modules.email_config import get_smtp_config
 
 load_dotenv()
 
 def send_email_smtp(sender, recipient, subject, body, attachments, smtp_server=None, smtp_port=None, smtp_user=None, smtp_password=None):
     try:
         # Haal SMTP settings uit .env als niet opgegeven
-        smtp_server = smtp_server or os.getenv("SMTP_SERVER")
-        smtp_port = int(smtp_port or os.getenv("SMTP_PORT", 587))
-        smtp_user = smtp_user or os.getenv("SMTP_USER")
-        smtp_password = smtp_password or os.getenv("SMTP_PASSWORD")
+        config = get_smtp_config()
+        smtp_server = smtp_server or config['server']
+        smtp_port = int(smtp_port or config['port'])
+        smtp_user = smtp_user or config['user']
+        smtp_password = smtp_password or config['password']
         smtp_use_tls = os.getenv("SMTP_USE_TLS", "True").lower() in ("1", "true", "yes")
 
         msg = EmailMessage()

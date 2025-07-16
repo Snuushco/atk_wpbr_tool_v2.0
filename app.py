@@ -33,6 +33,9 @@ from modules.stripe_config import (
     get_customer, verify_webhook_signature, get_price_info, is_stripe_configured
 )
 
+# Import email configuratie
+from modules.email_config import get_smtp_config
+
 def cleanup_uploaded_files():
     """Clean up all files in the uploads directory for the current session."""
     if 'uploads' in session:
@@ -79,10 +82,11 @@ app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max upload
 
 # SMTP configuratie
-SMTP_SERVER = os.getenv('SMTP_SERVER', 'smtp.gmail.com')
-SMTP_PORT = int(os.getenv('SMTP_PORT', '587'))
-SMTP_USERNAME = os.getenv('SMTP_USERNAME') or os.getenv('SMTP_USER')
-SMTP_PASSWORD = os.getenv('SMTP_PASSWORD')
+config = get_smtp_config()
+SMTP_SERVER = config['server']
+SMTP_PORT = config['port']
+SMTP_USERNAME = config['user']
+SMTP_PASSWORD = config['password']
 SMTP_FROM = os.getenv('SMTP_FROM') or SMTP_USERNAME
 
 # Zorg dat upload directory bestaat

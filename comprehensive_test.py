@@ -10,6 +10,7 @@ from email.mime.multipart import MIMEMultipart
 from dotenv import load_dotenv
 import logging
 from datetime import datetime, timedelta
+from modules.email_config import get_smtp_config
 
 # Laad environment variables
 load_dotenv()
@@ -125,10 +126,11 @@ class ATKToolTester:
         """Test 3: Email configuratie en SMTP verbinding"""
         print("\n=== Test 3: Email Configuration ===")
         
-        SMTP_SERVER = os.getenv('SMTP_SERVER', 'smtp.gmail.com')
-        SMTP_PORT = int(os.getenv('SMTP_PORT', '587'))
-        SMTP_USERNAME = os.getenv('SMTP_USERNAME')
-        SMTP_PASSWORD = os.getenv('SMTP_PASSWORD')
+        config = get_smtp_config()
+        SMTP_SERVER = config['server']
+        SMTP_PORT = config['port']
+        SMTP_USERNAME = config['user']
+        SMTP_PASSWORD = config['password']
         
         # Test SMTP verbinding
         try:
