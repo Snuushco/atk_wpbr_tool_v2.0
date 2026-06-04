@@ -186,7 +186,11 @@ document.getElementById('registerForm').addEventListener('submit', async functio
     const data = await response.json();
     if (data.success) {
       document.getElementById('registerForm').style.display = 'none';
-      document.getElementById('bevestiging').style.display = 'block';
+      const bevestiging = document.getElementById('bevestiging');
+      bevestiging.style.display = 'block';
+      if (data.message) {
+        bevestiging.querySelector('p').innerHTML = `${data.message}<br><br><a href="${data.redirect || '/login'}" class="btn-link">Ga naar inloggen</a>`;
+      }
     } else {
       errorDiv.textContent = data.message || 'Registratie mislukt';
       errorDiv.style.display = 'block';

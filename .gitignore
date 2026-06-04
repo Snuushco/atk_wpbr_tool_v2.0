@@ -1,0 +1,29 @@
+# Python/runtime
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.ruff_cache/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+
+# Runtime data: never commit customer data, uploads or logs
+users.db
+*.sqlite
+*.sqlite3
+uploads/
+app_debug.log
+*.log
+
+# Generated test artifacts
+test_report_*.txt
+test_upload_*.txt
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

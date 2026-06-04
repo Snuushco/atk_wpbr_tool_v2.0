@@ -1,4 +1,6 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session, send_from_directory, g
+from werkzeug.exceptions import HTTPException
+from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user, fresh_login_required
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
@@ -26,6 +28,7 @@ import logging
 import re
 import secrets
 from io import BytesIO
+from urllib.parse import urlparse
 
 # Import Stripe configuratie
 from modules.stripe_config import (
@@ -77,9 +80,24 @@ logging.basicConfig(
 load_dotenv()
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-key-please-change-in-production')
-app.config['UPLOAD_FOLDER'] = 'uploads'
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max upload
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+
+APP_BASE_URL = os.getenv('APP_BASE_URL', 'https://aanvraag.atk-wpbr.nl').rstrip('/')
+CANONICAL_HOST = urlparse(APP_BASE_URL).netloc or 'aanvraag.atk-wpbr.nl'
+secret_key = os.getenv('SECRET_KEY')
+if not secret_key:
+    if os.getenv('RENDER') or os.getenv('FLASK_ENV') == 'production':
+        logging.warning('SECRET_KEY is not configured; using an ephemeral key for this process.')
+        secret_key = secrets.token_urlsafe(64)
+    else:
+        secret_key = 'dev-key-please-change-in-production'
+app.config['SECRET_KEY'] = secret_key
+app.config['UPLOAD_FOLDER'] = os.getenv('UPLOAD_FOLDER', 'uploads')
+app.config['MAX_CONTENT_LENGTH'] = int(os.getenv('MAX_CONTENT_LENGTH', str(25 * 1024 * 1024)))
+app.config['PREFERRED_URL_SCHEME'] = 'https'
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_COOKIE_SECURE'] = os.getenv('SESSION_COOKIE_SECURE', 'true').lower() != 'false'
 
 # SMTP configuratie
 config = get_smtp_config()
@@ -91,6 +109,20 @@ SMTP_FROM = os.getenv('SMTP_FROM') or SMTP_USERNAME
 
 # Zorg dat upload directory bestaat
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+def canonical_external_url(endpoint, **values):
+    """Build absolute URLs for mail/redirects on aanvraag.atk-wpbr.nl."""
+    return f"{APP_BASE_URL}{url_for(endpoint, **values)}"
+
+def unique_upload_filename(original_filename):
+    """Prevent filename collisions and avoid exposing original local paths."""
+    safe = secure_filename(original_filename or 'upload')
+    name, ext = os.path.splitext(safe)
+    name = name[:80] or 'upload'
+    return f"{datetime.now().strftime('%Y%m%d%H%M%S')}_{secrets.token_hex(6)}_{name}{ext.lower()}"
+
+def public_request_host():
+    return request.headers.get('X-Forwarded-Host', request.host).split(',')[0].strip().lower()
 
 # Login manager setup
 login_manager = LoginManager()
@@ -302,6 +334,10 @@ def send_email(to_email, subject, body, attachments=None, reply_to=None, bcc=Non
         print(f"Error sending email: {e}\n{traceback.format_exc()}")
         return False
 
+@app.route('/healthz')
+def health():
+    return jsonify({'ok': True, 'service': 'atk-wpbr-tool'}), 200
+
 # Routes
 @app.route('/')
 def index():
@@ -351,6 +387,26 @@ def get_db_connection():
     conn.row_factory = sqlite3.Row
     return conn
 
+def ensure_user_columns(conn):
+    existing = {row[1] for row in conn.execute('PRAGMA table_info(users)').fetchall()}
+    migrations = {
+        'terms_accepted': 'ALTER TABLE users ADD COLUMN terms_accepted BOOLEAN DEFAULT 0',
+        'privacy_accepted': 'ALTER TABLE users ADD COLUMN privacy_accepted BOOLEAN DEFAULT 0',
+        'terms_accepted_date': 'ALTER TABLE users ADD COLUMN terms_accepted_date TIMESTAMP',
+        'privacy_accepted_date': 'ALTER TABLE users ADD COLUMN privacy_accepted_date TIMESTAMP',
+        'telefoon': 'ALTER TABLE users ADD COLUMN telefoon TEXT',
+        'is_paid_user': 'ALTER TABLE users ADD COLUMN is_paid_user BOOLEAN DEFAULT 0',
+        'email_verified': 'ALTER TABLE users ADD COLUMN email_verified BOOLEAN DEFAULT 0',
+        'verification_token': 'ALTER TABLE users ADD COLUMN verification_token TEXT',
+        'verification_token_expires': 'ALTER TABLE users ADD COLUMN verification_token_expires TIMESTAMP',
+        'stripe_customer_id': 'ALTER TABLE users ADD COLUMN stripe_customer_id TEXT',
+        'subscription_status': "ALTER TABLE users ADD COLUMN subscription_status TEXT DEFAULT 'inactive'",
+        'subscription_expires': 'ALTER TABLE users ADD COLUMN subscription_expires TIMESTAMP',
+    }
+    for column, statement in migrations.items():
+        if column not in existing:
+            conn.execute(statement)
+
 def init_db():
     conn = get_db_connection()
     conn.execute('''CREATE TABLE IF NOT EXISTS users (
@@ -372,6 +428,7 @@ def init_db():
         subscription_status TEXT DEFAULT 'inactive',
         subscription_expires TIMESTAMP
     )''')
+    ensure_user_columns(conn)
     
     # Email tracking tabel voor lees- en ontvangstbevestiging
     conn.execute('''CREATE TABLE IF NOT EXISTS email_tracking (
@@ -420,7 +477,7 @@ def send_verification_email(email, token):
     msg['To'] = email
     msg['Subject'] = 'Verifieer je e-mailadres - ATK-WPBR Tool'
     
-    verification_url = url_for('verify_email', token=token, _external=True)
+    verification_url = canonical_external_url('verify_email', token=token)
     
     body = f"""
     Beste gebruiker,
@@ -582,6 +639,11 @@ ADMIN_EMAIL = 'snuushco@gmail.com'  # Deze admin blijft altijd ingelogd
 
 @app.before_request
 def check_session_timeout():
+    if request.endpoint not in {'static', 'health'}:
+        host = public_request_host()
+        if host.endswith('.onrender.com') or host in {'atk-wpbr-tool-v2-0.onrender.com', 'atk-wpbr-tool-v2-0-1.onrender.com'}:
+            target = request.full_path if request.query_string else request.path
+            return redirect(f"{APP_BASE_URL}{target}", code=308)
     if current_user.is_authenticated:
         last_activity = session.get('last_activity')
         if last_activity:
@@ -633,7 +695,7 @@ def form():
                             cleanup_uploaded_files()  # Clean up on validation error
                             flash(f'Ongeldig bestandstype voor ID: {file.filename}. Toegestane types: {", ".join(ALLOWED_EXTENSIONS)}', 'error')
                             return render_template('form.html', korpscheftaken=json.dumps(KORPSCHEFTAKEN), form_data=form_data, uploads=existing_uploads, edit_mode=edit_mode)
-                        filename = secure_filename(file.filename)
+                        filename = unique_upload_filename(file.filename)
                         file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                         file.save(file_path)
                         id_paths.append(filename)
@@ -656,7 +718,7 @@ def form():
                         flash(f'Ongeldig bestandstype voor {key}: {file.filename}. Toegestane types: {", ".join(ALLOWED_EXTENSIONS)}', 'error')
                         return render_template('form.html', korpscheftaken=json.dumps(KORPSCHEFTAKEN), form_data=form_data, uploads=existing_uploads, edit_mode=edit_mode)
                     
-                    filename = secure_filename(file.filename)
+                    filename = unique_upload_filename(file.filename)
                     
                     # Resize voor pasfoto, handtekening en logo
                     if key in ['pasfoto_file', 'handtekening_file', 'logo_file']:
@@ -688,6 +750,24 @@ def form():
                 elif key in existing_uploads:
                     uploads[key] = existing_uploads[key]
             
+            required_uploads = {
+                'id': 'id_file',
+                'pasfoto': 'pasfoto_file',
+                'handtekening': 'handtekening_file',
+                'svpb': 'svpb_file',
+                'horeca': 'horeca_file',
+                'voetbal': 'voetbal_file',
+                'logo': 'logo_file',
+                'straf_belgie': 'straf_belgie_file',
+                'fuhrung': 'fuhrung_file',
+                'straf_herkomst': 'straf_herkomst_file',
+                'pv': 'pv_file',
+            }
+            missing_uploads = [label for label, file_key in required_uploads.items() if form_data.get(label) and not uploads.get(file_key)]
+            if missing_uploads:
+                flash('Upload ontbreekt voor geselecteerde bijlage(n): ' + ', '.join(missing_uploads), 'error')
+                return render_template('form.html', korpscheftaken=json.dumps(KORPSCHEFTAKEN), form_data=form_data, uploads=existing_uploads, edit_mode=edit_mode)
+
             session['uploads'] = uploads
             return redirect(url_for('controle'))
             
@@ -897,7 +977,7 @@ def controle():
     template_path = os.path.join(os.path.dirname(__file__), 'templates', 'atk_template.docx')
     # Genereer bestandsnaam met vaste waarde en achternaam
     achternaam = form_data.get('achternaam', '')
-    word_filename = f"241209 Nieuw Aanvraagformulier {achternaam}.docx"
+    word_filename = f"Aanvraagformulier_WPBR_{secure_filename(achternaam) or 'medewerker'}_{datetime.now().strftime('%Y%m%d%H%M%S')}.docx"
     word_path = os.path.join(app.config['UPLOAD_FOLDER'], word_filename)
     
     # Genereer Word document
@@ -1255,19 +1335,33 @@ def download_word():
 
 @app.before_request
 def log_request_info():
-    logging.info(f"REQUEST: {request.method} {request.path} - form: {request.form.to_dict()} - args: {request.args.to_dict()} - files: {[f for f in request.files]}")
+    logging.info(
+        "REQUEST: %s %s - args=%s - files=%s - form_fields=%s",
+        request.method,
+        request.path,
+        dict(request.args),
+        list(request.files.keys()),
+        list(request.form.keys()),
+    )
 
 @app.after_request
 def log_response_info(response):
-    logging.info(f"RESPONSE: {request.method} {request.path} - status: {response.status_code}")
+    response.headers.setdefault('X-Content-Type-Options', 'nosniff')
+    response.headers.setdefault('X-Frame-Options', 'DENY')
+    response.headers.setdefault('Referrer-Policy', 'strict-origin-when-cross-origin')
+    response.headers.setdefault('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
+    if request.is_secure or request.headers.get('X-Forwarded-Proto', '').split(',')[0] == 'https':
+        response.headers.setdefault('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+    logging.info("RESPONSE: %s %s - status=%s", request.method, request.path, response.status_code)
     return response
 
 @app.errorhandler(Exception)
 def handle_exception(e):
+    if isinstance(e, HTTPException):
+        return e
     import traceback
-    error_msg = f"ERROR: {request.method} {request.path} - {e}\n{traceback.format_exc()}"
-    logging.error(error_msg)
-    return f"Er is een interne fout opgetreden: {str(e)}", 500
+    logging.error("ERROR: %s %s\n%s", request.method, request.path, traceback.format_exc())
+    return "Er is een interne fout opgetreden. Probeer het later opnieuw.", 500
 
 # Voeg toe na app = Flask(__name__)
 from datetime import datetime
@@ -1340,12 +1434,13 @@ def beta_register():
     bedrijf = data.get('bedrijf', '').strip()
     vergunningnummer = data.get('vergunningnummer', '').strip().upper()
     email = data.get('email', '').strip()
+    contact_name = data.get('name', '').strip()
     telefoon = data.get('telefoon', '').strip()  # mag leeg zijn
     password = data.get('password', '')
     terms_accepted = data.get('terms_accepted')
     privacy_accepted = data.get('privacy_accepted')
     # Maak telefoon optioneel
-    if not (bedrijf and vergunningnummer and email and password):
+    if not (bedrijf and contact_name and vergunningnummer and email and password):
         return jsonify({'success': False, 'message': 'Vul alle verplichte velden in.'})
     if not (terms_accepted and privacy_accepted):
         return jsonify({'success': False, 'message': 'U moet akkoord gaan met de Gebruikersovereenkomst en Privacyverklaring.'})
@@ -1365,17 +1460,9 @@ def beta_register():
     bedrijfObj = next((item for item in wpbr_lijst if (item.get('Vergunning nummer','').upper() == vergunningnummer_norm)), None)
     if not bedrijfObj:
         return jsonify({'success': False, 'message': 'Dit vergunningnummer is niet gevonden in het WPBR-register van Justis.'})
-    # Database: voeg kolom telefoon en akkoordvelden toe indien nodig
+    # Database: voeg ontbrekende kolommen toe indien nodig
     conn = get_db_connection()
-    try:
-        conn.execute('ALTER TABLE users ADD COLUMN telefoon TEXT')
-        conn.execute('ALTER TABLE users ADD COLUMN terms_accepted BOOLEAN DEFAULT 0')
-        conn.execute('ALTER TABLE users ADD COLUMN privacy_accepted BOOLEAN DEFAULT 0')
-        conn.execute('ALTER TABLE users ADD COLUMN terms_accepted_date TIMESTAMP')
-        conn.execute('ALTER TABLE users ADD COLUMN privacy_accepted_date TIMESTAMP')
-        conn.execute('ALTER TABLE users ADD COLUMN is_paid_user BOOLEAN DEFAULT 0')
-    except Exception:
-        pass
+    ensure_user_columns(conn)
     # Check op bestaand e-mail of vergunningnummer
     user = conn.execute('SELECT * FROM users WHERE email = ? OR vergunningnummer = ?', (email, vergunningnummer_norm)).fetchone()
     if user:
@@ -1383,10 +1470,10 @@ def beta_register():
         return jsonify({'success': False, 'message': 'Dit e-mailadres of vergunningnummer is al geregistreerd.'})
     hashed_pw = generate_password_hash(password)
     current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    conn.execute('INSERT INTO users (name, email, hashed_password, vergunningnummer, telefoon, terms_accepted, privacy_accepted, terms_accepted_date, privacy_accepted_date, is_paid_user) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', (bedrijf, email, hashed_pw, vergunningnummer_norm, telefoon, True, True, current_time, current_time, 0))
+    conn.execute('INSERT INTO users (name, email, hashed_password, vergunningnummer, telefoon, terms_accepted, privacy_accepted, terms_accepted_date, privacy_accepted_date, is_paid_user, email_verified) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', (contact_name, email, hashed_pw, vergunningnummer_norm, telefoon, True, True, current_time, current_time, 0, 1))
     conn.commit()
     conn.close()
-    return jsonify({'success': True, 'message': 'Bedankt voor je aanmelding. We nemen spoedig contact op.'})
+    return jsonify({'success': True, 'message': 'Account aangemaakt. Je kunt nu direct inloggen op aanvraag.atk-wpbr.nl.', 'redirect': url_for('login')})
 
 @app.route('/gebruikersovereenkomst')
 def gebruikersovereenkomst():
