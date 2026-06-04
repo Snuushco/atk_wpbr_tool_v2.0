@@ -93,6 +93,7 @@ if not secret_key:
         secret_key = 'dev-key-please-change-in-production'
 app.config['SECRET_KEY'] = secret_key
 app.config['UPLOAD_FOLDER'] = os.getenv('UPLOAD_FOLDER', 'uploads')
+app.config['DATABASE_PATH'] = os.getenv('DATABASE_PATH', 'users.db')
 app.config['MAX_CONTENT_LENGTH'] = int(os.getenv('MAX_CONTENT_LENGTH', str(25 * 1024 * 1024)))
 app.config['PREFERRED_URL_SCHEME'] = 'https'
 app.config['SESSION_COOKIE_HTTPONLY'] = True
@@ -348,42 +349,45 @@ def index():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        data = request.get_json()
-        email = data.get('email', '').strip()
+        data = request.get_json(silent=True) or {}
+        email = data.get('email', '').strip().lower()
         password = data.get('password', '')
         
         if not (email and password):
             return jsonify({'success': False, 'message': 'Vul alle velden in.'})
             
         conn = get_db_connection()
+        ensure_user_columns(conn)
         user = conn.execute('SELECT * FROM users WHERE email = ?', (email,)).fetchone()
         conn.close()
         
         if user and check_password_hash(user['hashed_password'], password):
             if not user['email_verified']:
                 return jsonify({
-                    'success': False, 
-                    'message': 'Je e-mailadres is nog niet geverifieerd. Controleer je inbox voor de verificatie-e-mail.'
-                })
+                    'success': False,
+                    'code': 'EMAIL_NOT_VERIFIED',
+                    'message': 'Je e-mailadres is nog niet geverifieerd. Controleer je inbox of vraag een nieuwe verificatielink aan.'
+                }), 403
             login_user(User(
-                user['id'], 
-                user['email'], 
-                user['name'], 
+                user['id'],
+                user['email'],
+                user['name'],
                 user['vergunningnummer'],
                 user['terms_accepted'],
                 user['privacy_accepted'],
                 user['terms_accepted_date'],
                 user['privacy_accepted_date']
             ))
+            session['user_email'] = user['email']
             return jsonify({'success': True, 'redirect': url_for('form')})
         else:
-            return jsonify({'success': False, 'message': 'Ongeldige inloggegevens.'})
+            return jsonify({'success': False, 'code': 'INVALID_CREDENTIALS', 'message': 'Ongeldige inloggegevens.'}), 401
             
     return render_template('login.html')
 
 # --- User database helpers ---
 def get_db_connection():
-    conn = sqlite3.connect('users.db')
+    conn = sqlite3.connect(app.config['DATABASE_PATH'])
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -406,6 +410,15 @@ def ensure_user_columns(conn):
     for column, statement in migrations.items():
         if column not in existing:
             conn.execute(statement)
+    # Preserve access for legacy accounts that existed before email verification was introduced.
+    # New /register accounts have a verification_token and remain unverified until clicked.
+    conn.execute("""
+        UPDATE users
+        SET email_verified = 1
+        WHERE COALESCE(email_verified, 0) = 0
+          AND verification_token IS NULL
+    """)
+    conn.commit()
 
 def init_db():
     conn = get_db_connection()
@@ -471,65 +484,59 @@ def check_vergunningnummer(vergunningnummer, wpbr_lijst):
     return vergunningnummer.upper() in vergunningnummers
 
 def send_verification_email(email, token):
-    """Send verification email to user."""
-    msg = MIMEMultipart()
-    msg['From'] = 'noreply@atk-wpbr.nl'
-    msg['To'] = email
-    msg['Subject'] = 'Verifieer je e-mailadres - ATK-WPBR Tool'
-    
+    """Send account verification using the central configured SMTP service."""
     verification_url = canonical_external_url('verify_email', token=token)
-    
-    body = f"""
-    Beste gebruiker,
-    
-    Bedankt voor je registratie bij de ATK-WPBR Tool. Om je account te activeren, klik op onderstaande link:
-    
-    {verification_url}
-    
-    Deze link is 24 uur geldig.
-    
-    Met vriendelijke groet,
-    Team ATK-WPBR
+    subject = 'Verifieer je e-mailadres - ATK-WPBR Tool'
+    body = f"""Beste gebruiker,
+
+Bedankt voor je registratie bij de ATK-WPBR Tool. Om je account te activeren, klik op onderstaande link:
+
+{verification_url}
+
+Deze link is 24 uur geldig.
+
+Met vriendelijke groet,
+Team ATK-WPBR
+"""
+    html_body = f"""
+    <p>Beste gebruiker,</p>
+    <p>Bedankt voor je registratie bij de ATK-WPBR Tool. Activeer je account via onderstaande knop.</p>
+    <p><a href="{verification_url}" style="display:inline-block;background:#1976d2;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;">E-mailadres verifiëren</a></p>
+    <p>Of kopieer deze link:<br><a href="{verification_url}">{verification_url}</a></p>
+    <p>Deze link is 24 uur geldig.</p>
+    <p>Met vriendelijke groet,<br>Team ATK-WPBR</p>
     """
-    
-    msg.attach(MIMEText(body, 'plain'))
-    
-    try:
-        with smtplib.SMTP('smtp.gmail.com', 587) as server:
-            server.starttls()
-            server.login(os.getenv('EMAIL_USER'), os.getenv('EMAIL_PASSWORD'))
-            server.send_message(msg)
-        return True
-    except Exception as e:
-        logging.error(f"Error sending verification email: {str(e)}")
-        return False
+    return send_email(to_email=email, subject=subject, body=body, html_body=html_body)
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        data = request.get_json()
+        data = request.get_json(silent=True) or {}
         name = data.get('name', '').strip()
-        email = data.get('email', '').strip()
+        email = data.get('email', '').strip().lower()
         password = data.get('password', '')
         vergunningnummer = data.get('vergunningnummer', '').strip().upper()
         
         if not (name and email and password and vergunningnummer):
-            return jsonify({'success': False, 'message': 'Vul alle verplichte velden in.'})
+            return jsonify({'success': False, 'code': 'VALIDATION_ERROR', 'message': 'Vul alle verplichte velden in.'}), 400
             
         # Valideer vergunningnummer
         match = re.match(r'^(ND|BD|HBD|HND|PAC|PGW|POB|VTC)([0-9]{1,5})$', vergunningnummer, re.IGNORECASE)
         if not match:
-            return jsonify({'success': False, 'message': 'Vul een geldig vergunningnummer in (bijv. ND06250).'})
+            return jsonify({'success': False, 'code': 'INVALID_LICENSE', 'message': 'Vul een geldig vergunningnummer in (bijv. ND06250).'}), 400
             
         type_part = match.group(1)
         num_part = match.group(2).zfill(5)
         vergunningnummer_norm = f"{type_part}{num_part}"
         
         conn = get_db_connection()
-        user = conn.execute('SELECT * FROM users WHERE email = ?', (email,)).fetchone()
+        ensure_user_columns(conn)
+        user = conn.execute('SELECT * FROM users WHERE email = ? OR vergunningnummer = ?', (email, vergunningnummer_norm)).fetchone()
         if user:
             conn.close()
-            return jsonify({'success': False, 'message': 'Dit e-mailadres is al geregistreerd.'})
+            if user['email'] == email:
+                return jsonify({'success': False, 'code': 'EMAIL_ALREADY_REGISTERED', 'message': 'Dit e-mailadres is al geregistreerd.'}), 409
+            return jsonify({'success': False, 'code': 'LICENSE_ALREADY_REGISTERED', 'message': 'Dit vergunningnummer is al geregistreerd.'}), 409
             
         hashed_pw = generate_password_hash(password)
         current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -555,20 +562,43 @@ def register():
                     'message': 'Registratie succesvol. Er is een verificatie-e-mail verzonden naar je e-mailadres.'
                 })
             else:
-                # If email sending fails, delete the user and return error
-                conn.execute('DELETE FROM users WHERE email = ?', (email,))
-                conn.commit()
+                # Keep the unverified account so the user can request a new verification email.
                 return jsonify({
-                    'success': False, 
-                    'message': 'Er is een fout opgetreden bij het verzenden van de verificatie-e-mail. Probeer het later opnieuw.'
-                })
+                    'success': False,
+                    'code': 'EMAIL_SEND_FAILED',
+                    'message': 'Account aangemaakt, maar de verificatie-e-mail kon niet worden verzonden. Probeer opnieuw via “verificatie opnieuw versturen” of neem contact op.'
+                }), 202
         except Exception as e:
             logging.error(f"Error in registration: {str(e)}")
-            return jsonify({'success': False, 'message': 'Er is een fout opgetreden bij het registreren.'})
+            return jsonify({'success': False, 'code': 'REGISTRATION_FAILED', 'message': 'Er is een fout opgetreden bij het registreren.'}), 500
         finally:
             conn.close()
             
     return render_template('register.html')
+
+@app.route('/resend-verification', methods=['POST'])
+def resend_verification():
+    data = request.get_json(silent=True) or {}
+    email = data.get('email', '').strip().lower()
+    if not email:
+        return jsonify({'success': False, 'code': 'VALIDATION_ERROR', 'message': 'Vul je e-mailadres in.'}), 400
+    conn = get_db_connection()
+    try:
+        ensure_user_columns(conn)
+        user = conn.execute('SELECT * FROM users WHERE email = ?', (email,)).fetchone()
+        if not user:
+            return jsonify({'success': False, 'code': 'EMAIL_NOT_FOUND', 'message': 'Geen account gevonden met dit e-mailadres.'}), 404
+        if user['email_verified']:
+            return jsonify({'success': True, 'code': 'ALREADY_VERIFIED', 'message': 'Dit e-mailadres is al geverifieerd. Je kunt inloggen.'})
+        verification_token = secrets.token_urlsafe(32)
+        token_expires = (datetime.now() + timedelta(hours=24)).strftime('%Y-%m-%d %H:%M:%S')
+        conn.execute('UPDATE users SET verification_token = ?, verification_token_expires = ? WHERE id = ?', (verification_token, token_expires, user['id']))
+        conn.commit()
+        if send_verification_email(email, verification_token):
+            return jsonify({'success': True, 'message': 'Nieuwe verificatie-e-mail verzonden.'})
+        return jsonify({'success': False, 'code': 'EMAIL_SEND_FAILED', 'message': 'De verificatie-e-mail kon niet worden verzonden. Probeer het later opnieuw.'}), 202
+    finally:
+        conn.close()
 
 @app.route('/verify-email/<token>')
 def verify_email(token):
